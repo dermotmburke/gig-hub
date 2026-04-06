@@ -2,10 +2,12 @@ package com.d3bot.events;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
 
+@Service
 public class EventExtractor {
     public List<Event> extract(String page) {
         return Jsoup.parse(page).select("a.card").stream()
