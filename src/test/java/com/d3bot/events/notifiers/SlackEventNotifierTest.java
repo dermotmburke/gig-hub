@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verify;
 class SlackEventNotifierTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "#test-events");
+    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test");
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -48,7 +48,6 @@ class SlackEventNotifierTest {
         assertTrue(payload.contains("Friday 10th May"));
         assertTrue(payload.contains("Radiohead"));
         assertTrue(payload.contains("2 upcoming events"));
-        assertTrue(payload.contains("#test-events"));
     }
 
     @Test

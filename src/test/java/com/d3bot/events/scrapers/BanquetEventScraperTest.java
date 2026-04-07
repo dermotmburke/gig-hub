@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -37,5 +38,6 @@ class BanquetEventScraperTest {
         assertEquals("Lightyear / Slow Gherkin", events.get(0).artist());
         assertEquals("Monday 6th April", events.get(0).date());
         assertEquals("The Fighting Cocks", events.get(0).Location());
+        assertTrue(events.get(0).url().startsWith("https://"));
     }
 }
