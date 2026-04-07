@@ -1,5 +1,6 @@
-package com.d3bot.events;
+package com.d3bot.events.extractors;
 
+import com.d3bot.events.models.Event;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

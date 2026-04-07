@@ -1,5 +1,8 @@
-package com.d3bot.events;
+package com.d3bot.events.jobs;
 
+import com.d3bot.events.models.Event;
+import com.d3bot.events.notifiers.EventNotifier;
+import com.d3bot.events.scrapers.EventScraper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -1,5 +1,8 @@
-package com.d3bot.events;
+package com.d3bot.events.scrapers;
 
+import com.d3bot.events.extractors.EventExtractor;
+import com.d3bot.events.fetchers.EventFetcher;
+import com.d3bot.events.models.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
