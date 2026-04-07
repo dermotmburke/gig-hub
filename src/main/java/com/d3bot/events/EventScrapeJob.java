@@ -1,6 +1,5 @@
 package com.d3bot.events;
 
-import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,22 +14,25 @@ public class EventScrapeJob {
 
     private static final Logger log = LoggerFactory.getLogger(EventScrapeJob.class);
 
+    private final EventFetcher eventFetcher;
     private final EventExtractor eventExtractor;
+    private final EventNotifier eventNotifier;
 
     @Value("${scraper.url:https://www.banquetrecords.com/events?w=1000}")
     private String eventsUrl;
 
-    public EventScrapeJob(EventExtractor eventExtractor) {
+    public EventScrapeJob(EventFetcher eventFetcher, EventExtractor eventExtractor, EventNotifier eventNotifier) {
+        this.eventFetcher = eventFetcher;
         this.eventExtractor = eventExtractor;
+        this.eventNotifier = eventNotifier;
     }
 
     @Scheduled(fixedRateString = "${scraper.interval-ms:3600000}")
     public void scrape() throws IOException {
         log.info("Scraping events from {}", eventsUrl);
-        String html = Jsoup.connect(eventsUrl).execute().body();
+        String html = eventFetcher.fetch(eventsUrl);
         List<Event> events = eventExtractor.extract(html);
         log.info("Found {} events", events.size());
-        // TODO: notify people
-        events.forEach(e -> log.info("Event: {}", e));
+        eventNotifier.notify(events);
     }
 }
