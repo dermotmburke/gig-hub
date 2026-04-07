@@ -6,14 +6,14 @@ import com.d3bot.events.notifiers.EventNotifier;
 import com.d3bot.events.scrapers.EventScraper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
 
 @Component
-public class EventScrapeJob {
+public class EventScrapeJob implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(EventScrapeJob.class);
 
@@ -28,7 +28,11 @@ public class EventScrapeJob {
         this.deduplication = deduplication;
     }
 
-    @Scheduled(fixedRateString = "${scraper.interval-ms:3600000}", initialDelayString = "${scraper.initial-delay-ms:0}")
+    @Override
+    public void run(String... args) {
+        scrape();
+    }
+
     public void scrape() {
         for (EventScraper scraper : scrapers) {
             try {
