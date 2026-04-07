@@ -13,11 +13,11 @@ public class EventScrapeJob {
     private static final Logger log = LoggerFactory.getLogger(EventScrapeJob.class);
 
     private final List<EventScraper> scrapers;
-    private final EventNotifier eventNotifier;
+    private final List<EventNotifier> notifiers;
 
-    public EventScrapeJob(List<EventScraper> scrapers, EventNotifier eventNotifier) {
+    public EventScrapeJob(List<EventScraper> scrapers, List<EventNotifier> notifiers) {
         this.scrapers = scrapers;
-        this.eventNotifier = eventNotifier;
+        this.notifiers = notifiers;
     }
 
     @Scheduled(fixedRateString = "${scraper.interval-ms:3600000}", initialDelayString = "${scraper.initial-delay-ms:0}")
@@ -26,7 +26,7 @@ public class EventScrapeJob {
             try {
                 List<Event> events = scraper.scrape();
                 log.info("{} found {} events", scraper.getClass().getSimpleName(), events.size());
-                eventNotifier.notify(events);
+                notifiers.forEach(n -> n.notify(events));
             } catch (Exception e) {
                 log.error("Failed to scrape {}: {}", scraper.getClass().getSimpleName(), e.getMessage());
             }

@@ -20,7 +20,7 @@ class EventScrapeJobTest {
     RoyalAlbertHallEventScraper royalAlbertHallEventScraper;
 
     @MockBean
-    EventNotifier eventNotifier;
+    LoggingEventNotifier loggingEventNotifier;
 
     @Autowired
     EventScrapeJob eventScrapeJob;
@@ -34,7 +34,7 @@ class EventScrapeJobTest {
 
         eventScrapeJob.scrape();
 
-        verify(eventNotifier).notify(banquetEvents);
-        verify(eventNotifier).notify(rahEvents);
+        verify(loggingEventNotifier).notify(banquetEvents);
+        verify(loggingEventNotifier).notify(rahEvents);
     }
 }
