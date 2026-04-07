@@ -9,8 +9,11 @@ import java.io.IOException;
 @Component
 public class EventFetcher {
 
-    @Value("${scraper.url:https://www.banquetrecords.com/events?w=1000}")
-    private String url;
+    private final String url;
+
+    public EventFetcher(@Value("${scraper.url:https://www.banquetrecords.com/events?w=1000}") String url) {
+        this.url = url;
+    }
 
     public String fetch() throws IOException {
         return fetch(url);

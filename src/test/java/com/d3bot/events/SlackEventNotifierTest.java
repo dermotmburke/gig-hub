@@ -2,7 +2,6 @@ package com.d3bot.events;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -18,14 +17,11 @@ import static org.mockito.Mockito.verify;
 class SlackEventNotifierTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient);
+    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "#test-events");
 
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() throws Exception {
-        ReflectionTestUtils.setField(notifier, "webhookUrl", "https://hooks.slack.com/test");
-        ReflectionTestUtils.setField(notifier, "channel", "#test-events");
-
         HttpResponse<String> mockResponse = mock(HttpResponse.class);
         doReturn(200).when(mockResponse).statusCode();
         doReturn(mockResponse).when(httpClient).send(any(HttpRequest.class), any());
