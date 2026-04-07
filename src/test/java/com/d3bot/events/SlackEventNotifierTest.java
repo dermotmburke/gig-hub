@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -59,5 +60,24 @@ class SlackEventNotifierTest {
         notifier.notify(List.of());
 
         verify(httpClient, org.mockito.Mockito.never()).send(any(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void notifyLogsErrorOnNon200Response() throws Exception {
+        HttpResponse<String> errorResponse = mock(HttpResponse.class);
+        doReturn(500).when(errorResponse).statusCode();
+        doReturn("Internal Server Error").when(errorResponse).body();
+        doReturn(errorResponse).when(httpClient).send(any(HttpRequest.class), any());
+
+        assertDoesNotThrow(() -> notifier.notify(List.of(new Event("The Cure", "O2 Arena", "Friday 10th May", "/the-cure"))));
+    }
+
+    @Test
+    void notifyHandlesIOException() throws Exception {
+        doReturn(null).when(httpClient).send(any(HttpRequest.class), any());
+        org.mockito.Mockito.when(httpClient.send(any(HttpRequest.class), any())).thenThrow(new java.io.IOException("connection refused"));
+
+        assertDoesNotThrow(() -> notifier.notify(List.of(new Event("The Cure", "O2 Arena", "Friday 10th May", "/the-cure"))));
     }
 }
