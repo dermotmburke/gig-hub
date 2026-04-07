@@ -9,6 +9,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.file.Files;
+import java.time.LocalDate;
+import java.time.Year;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,8 +38,8 @@ class BanquetEventScraperTest {
 
         assertEquals(47, events.size());
         assertEquals("Lightyear / Slow Gherkin", events.get(0).artist());
-        assertEquals("Monday 6th April", events.get(0).date());
-        assertEquals("The Fighting Cocks", events.get(0).Location());
+        assertEquals(LocalDate.of(Year.now().getValue(), 4, 6), events.get(0).date());
+        assertEquals("The Fighting Cocks", events.get(0).location());
         assertTrue(events.get(0).url().startsWith("https://"));
     }
 }
