@@ -13,6 +13,10 @@ public class EventFetcher {
     private String url;
 
     public String fetch() throws IOException {
+        return fetch(url);
+    }
+
+    public String fetch(String url) throws IOException {
         return Jsoup.connect(url).execute().body();
     }
 }
