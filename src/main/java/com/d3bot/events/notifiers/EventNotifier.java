@@ -1,4 +1,6 @@
-package com.d3bot.events;
+package com.d3bot.events.notifiers;
+
+import com.d3bot.events.models.Event;
 
 import java.util.List;
 

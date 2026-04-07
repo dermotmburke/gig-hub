@@ -1,5 +1,9 @@
-package com.d3bot.events;
+package com.d3bot.events.jobs;
 
+import com.d3bot.events.models.Event;
+import com.d3bot.events.notifiers.LoggingEventNotifier;
+import com.d3bot.events.scrapers.BanquetEventScraper;
+import com.d3bot.events.scrapers.RoyalAlbertHallEventScraper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

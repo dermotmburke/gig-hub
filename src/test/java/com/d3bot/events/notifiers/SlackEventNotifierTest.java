@@ -1,5 +1,6 @@
-package com.d3bot.events;
+package com.d3bot.events.notifiers;
 
+import com.d3bot.events.models.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

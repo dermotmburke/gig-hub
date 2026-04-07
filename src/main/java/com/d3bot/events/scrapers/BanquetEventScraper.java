@@ -1,5 +1,8 @@
-package com.d3bot.events;
+package com.d3bot.events.scrapers;
 
+import com.d3bot.events.models.Event;
+import com.d3bot.events.fetchers.EventFetcher;
+import com.d3bot.events.extractors.EventExtractor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
