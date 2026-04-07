@@ -10,9 +10,9 @@
         <version>3.4.4</version>
     </parent>
 
-    <groupId>org.example</groupId>
-    <artifactId>event-scrape</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <groupId>com.d3bot</groupId>
+    <artifactId>gig-hub</artifactId>
+    <version>0.0.0</version>
 
     <properties>
         <java.version>21</java.version>
@@ -50,7 +50,7 @@
                         <image>eclipse-temurin:21-jre</image>
                     </from>
                     <to>
-                        <image>event-scraper</image>
+                        <image>gig-hub</image>
                         <tags>
                             <tag>latest</tag>
                             <tag>${project.version}</tag>

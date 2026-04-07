@@ -1,1 +1,1 @@
-# event-scraper
+# Gig Hub
