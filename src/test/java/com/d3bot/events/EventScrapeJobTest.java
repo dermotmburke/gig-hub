@@ -11,18 +11,17 @@ import java.nio.file.Files;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@SpringBootTest(properties = "scraper.initial-delay-ms=999999999")
 class EventScrapeJobTest {
 
     @MockBean
     EventFetcher eventFetcher;
 
     @MockBean
-    EventNotifier eventNotifier;
+    LoggingEventNotifier loggingEventNotifier;
 
     @Autowired
     EventScrapeJob eventScrapeJob;
@@ -30,12 +29,12 @@ class EventScrapeJobTest {
     @Test
     void scrapePassesExtractedEventsToNotifier() throws Exception {
         String html = Files.readString(new ClassPathResource("events.html").getFile().toPath());
-        when(eventFetcher.fetch(any())).thenReturn(html);
+        when(eventFetcher.fetch()).thenReturn(html);
 
         eventScrapeJob.scrape();
 
         ArgumentCaptor<List<Event>> captor = ArgumentCaptor.captor();
-        verify(eventNotifier).notify(captor.capture());
+        verify(loggingEventNotifier).notify(captor.capture());
         List<Event> events = captor.getValue();
         assertEquals(47, events.size());
         assertEquals("Lightyear / Slow Gherkin", events.get(0).artist());
