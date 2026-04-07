@@ -23,15 +23,12 @@ public class SlackEventNotifier implements EventNotifier {
 
     private final HttpClient httpClient;
     private final String webhookUrl;
-    private final String channel;
 
     public SlackEventNotifier(
             HttpClient httpClient,
-            @Value("${slack.webhook-url}") String webhookUrl,
-            @Value("${slack.channel:#events}") String channel) {
+            @Value("${slack.webhook-url}") String webhookUrl) {
         this.httpClient = httpClient;
         this.webhookUrl = webhookUrl;
-        this.channel = channel;
     }
 
     @Override
@@ -50,7 +47,7 @@ public class SlackEventNotifier implements EventNotifier {
             if (response.statusCode() != 200) {
                 log.error("Slack notification failed with status {}: {}", response.statusCode(), response.body());
             } else {
-                log.info("Notified Slack channel {} of {} events", channel, events.size());
+                log.info("Notified Slack of {} events", events.size());
             }
         } catch (IOException | InterruptedException e) {
             log.error("Failed to send Slack notification", e);
@@ -60,11 +57,15 @@ public class SlackEventNotifier implements EventNotifier {
 
     String buildPayload(List<Event> events) {
         String eventList = events.stream()
-                .map(e -> String.format("• *%s* — %s @ %s <%s|link>", e.artist(), e.date(), e.Location(), e.url()))
-                .collect(Collectors.joining("\\n"));
-        return String.format(
-                "{\"channel\":\"%s\",\"text\":\"*%d upcoming events*\\n%s\"}",
-                channel, events.size(), eventList
-        );
+                .map(e -> e.url().startsWith("http")
+                        ? String.format("• *%s* — %s @ %s <%s|link>", e.artist(), e.date(), e.Location(), e.url())
+                        : String.format("• *%s* — %s @ %s", e.artist(), e.date(), e.Location()))
+                .collect(Collectors.joining("\n"));
+        String text = String.format("*%d upcoming events*\n%s", events.size(), eventList);
+        return "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"" + jsonEscape(text) + "\"}}]}";
+    }
+
+    private static String jsonEscape(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
     }
 }
