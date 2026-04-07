@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.Year;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,12 +43,17 @@ class BanquetEventExtractorTest {
 
     @Test
     void firstEventHasCorrectDate() {
-        assertEquals("Monday 6th April", events.get(0).date());
+        assertEquals(LocalDate.of(Year.now().getValue(), 4, 6), events.get(0).date());
+    }
+
+    @Test
+    void firstEventHasCorrectStartTime() {
+        assertEquals(LocalTime.of(19, 0), events.get(0).startTime());
     }
 
     @Test
     void firstEventHasCorrectLocation() {
-        assertEquals("The Fighting Cocks", events.get(0).Location());
+        assertEquals("The Fighting Cocks", events.get(0).location());
     }
 
     @Test

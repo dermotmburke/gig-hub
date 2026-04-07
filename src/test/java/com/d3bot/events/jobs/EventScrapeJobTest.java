@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.mockito.Mockito.verify;
@@ -31,8 +33,8 @@ class EventScrapeJobTest {
 
     @Test
     void scrapeNotifiesWithEventsFromEachScraper() throws Exception {
-        List<Event> banquetEvents = List.of(new Event("Artist A", "Venue A", "Monday", "/a"));
-        List<Event> rahEvents = List.of(new Event("Artist B", "Royal Albert Hall", "Tuesday", "/b"));
+        List<Event> banquetEvents = List.of(new Event("Artist A", "Venue A", LocalDate.of(2026, 4, 7), LocalTime.of(19, 0), "/a"));
+        List<Event> rahEvents = List.of(new Event("Artist B", "Royal Albert Hall", LocalDate.of(2026, 4, 8), LocalTime.of(19, 0), "/b"));
         when(banquetEventScraper.scrape()).thenReturn(banquetEvents);
         when(royalAlbertHallEventScraper.scrape()).thenReturn(rahEvents);
 
