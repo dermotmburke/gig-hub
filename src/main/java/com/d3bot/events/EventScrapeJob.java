@@ -16,23 +16,23 @@ public class EventScrapeJob {
 
     private final EventFetcher eventFetcher;
     private final EventExtractor eventExtractor;
-    private final EventNotifier eventNotifier;
+    private final List<EventNotifier> notifiers;
 
     @Value("${scraper.url:https://www.banquetrecords.com/events?w=1000}")
     private String eventsUrl;
 
-    public EventScrapeJob(EventFetcher eventFetcher, EventExtractor eventExtractor, EventNotifier eventNotifier) {
+    public EventScrapeJob(EventFetcher eventFetcher, EventExtractor eventExtractor, List<EventNotifier> notifiers) {
         this.eventFetcher = eventFetcher;
         this.eventExtractor = eventExtractor;
-        this.eventNotifier = eventNotifier;
+        this.notifiers = notifiers;
     }
 
-    @Scheduled(fixedRateString = "${scraper.interval-ms:3600000}")
+    @Scheduled(fixedRateString = "${scraper.interval-ms:3600000}", initialDelayString = "${scraper.initial-delay-ms:0}")
     public void scrape() throws IOException {
         log.info("Scraping events from {}", eventsUrl);
         String html = eventFetcher.fetch(eventsUrl);
         List<Event> events = eventExtractor.extract(html);
         log.info("Found {} events", events.size());
-        eventNotifier.notify(events);
+        notifiers.forEach(n -> n.notify(events));
     }
 }
