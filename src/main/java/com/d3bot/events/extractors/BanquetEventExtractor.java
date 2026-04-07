@@ -23,8 +23,10 @@ public class BanquetEventExtractor {
     private static final Pattern TIME_PATTERN = Pattern.compile("(\\d+:\\d+[ap]m)", Pattern.CASE_INSENSITIVE);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mma", Locale.ENGLISH);
 
+    private static final String BASE_URL = "https://www.banquetrecords.com";
+
     public List<Event> extract(String page) {
-        return Jsoup.parse(page).select("a.card").stream()
+        return Jsoup.parse(page, BASE_URL).select("a.card").stream()
                 .map(this::parseCard)
                 .filter(Objects::nonNull)
                 .toList();
@@ -33,8 +35,8 @@ public class BanquetEventExtractor {
     private Event parseCard(Element card) {
         var artistEl = card.selectFirst("span.artist");
         var titleEl = card.selectFirst("span.title");
-        var href = card.attribute("href");
-        if (artistEl == null || titleEl == null || href == null) {
+        var url = card.absUrl("href");
+        if (artistEl == null || titleEl == null || url.isEmpty()) {
             return null;
         }
         var titleParts = titleEl.text().split(" at ", 2);
@@ -45,7 +47,7 @@ public class BanquetEventExtractor {
         if (dateTime == null) {
             return null;
         }
-        return new Event(getArtist(artistEl), getLocation(titleParts[1]), dateTime, href.getValue());
+        return new Event(getArtist(artistEl), getLocation(titleParts[1]), dateTime, url);
     }
 
     private String getArtist(Element artistEl) {

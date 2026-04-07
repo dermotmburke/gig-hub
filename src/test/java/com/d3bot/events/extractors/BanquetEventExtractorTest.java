@@ -52,6 +52,7 @@ class BanquetEventExtractorTest {
 
     @Test
     void firstEventHasCorrectUrl() {
+        assertTrue(events.get(0).url().startsWith("https://www.banquetrecords.com"));
         assertTrue(events.get(0).url().contains("LSG060426"));
     }
 

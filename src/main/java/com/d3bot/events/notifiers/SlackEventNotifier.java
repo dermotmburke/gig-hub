@@ -62,7 +62,7 @@ public class SlackEventNotifier implements EventNotifier {
     String buildPayload(List<Event> events) {
         String eventList = events.stream()
                 .map(e -> e.url().startsWith("http")
-                        ? String.format("• *%s* — %s @ %s <%s|link>", e.artist(), e.dateTime().format(DATE_FORMATTER), e.location(), e.url())
+                        ? String.format("• *<%s|%s>* — %s @ %s", e.url(), e.artist(), e.dateTime().format(DATE_FORMATTER), e.location())
                         : String.format("• *%s* — %s @ %s", e.artist(), e.dateTime().format(DATE_FORMATTER), e.location()))
                 .collect(Collectors.joining("\n"));
         String text = String.format("*%d upcoming events*\n%s", events.size(), eventList);
