@@ -21,15 +21,16 @@ public class SlackEventNotifier implements EventNotifier {
     private static final Logger log = LoggerFactory.getLogger(SlackEventNotifier.class);
 
     private final HttpClient httpClient;
+    private final String webhookUrl;
+    private final String channel;
 
-    @Value("${slack.channel:#events}")
-    private String channel;
-
-    @Value("${slack.webhook-url}")
-    private String webhookUrl;
-
-    public SlackEventNotifier(HttpClient httpClient) {
+    public SlackEventNotifier(
+            HttpClient httpClient,
+            @Value("${slack.webhook-url}") String webhookUrl,
+            @Value("${slack.channel:#events}") String channel) {
         this.httpClient = httpClient;
+        this.webhookUrl = webhookUrl;
+        this.channel = channel;
     }
 
     @Override
