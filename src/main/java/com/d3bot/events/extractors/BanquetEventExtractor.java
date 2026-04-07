@@ -6,6 +6,7 @@ import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.Year;
@@ -40,33 +41,32 @@ public class BanquetEventExtractor {
         if (titleParts.length < 2) {
             return null;
         }
-        var date = getDate(titleParts[0]);
-        if (date == null) {
+        var dateTime = getDateTime(titleParts[0], titleParts[1]);
+        if (dateTime == null) {
             return null;
         }
-        return new Event(getArtist(artistEl), getLocation(titleParts[1]), date, getStartTime(titleParts[1]), href.getValue());
+        return new Event(getArtist(artistEl), getLocation(titleParts[1]), dateTime, href.getValue());
     }
 
     private String getArtist(Element artistEl) {
         return artistEl.text();
     }
 
-    private LocalDate getDate(String datePart) {
-        var matcher = DATE_PATTERN.matcher(datePart);
-        if (!matcher.find()) {
+    private LocalDateTime getDateTime(String datePart, String locationPart) {
+        var dateMatcher = DATE_PATTERN.matcher(datePart);
+        if (!dateMatcher.find()) {
             return null;
         }
-        int day = Integer.parseInt(matcher.group(1));
-        Month month = Month.valueOf(matcher.group(2).toUpperCase());
-        return LocalDate.of(Year.now().getValue(), month, day);
-    }
+        int day = Integer.parseInt(dateMatcher.group(1));
+        Month month = Month.valueOf(dateMatcher.group(2).toUpperCase());
+        LocalDate date = LocalDate.of(Year.now().getValue(), month, day);
 
-    private LocalTime getStartTime(String locationPart) {
-        var matcher = TIME_PATTERN.matcher(locationPart);
-        if (!matcher.find()) {
-            return null;
-        }
-        return LocalTime.parse(matcher.group(1).toUpperCase(), TIME_FORMATTER);
+        var timeMatcher = TIME_PATTERN.matcher(locationPart);
+        LocalTime time = timeMatcher.find()
+                ? LocalTime.parse(timeMatcher.group(1).toUpperCase(), TIME_FORMATTER)
+                : LocalTime.MIDNIGHT;
+
+        return LocalDateTime.of(date, time);
     }
 
     private String getLocation(String locationPart) {

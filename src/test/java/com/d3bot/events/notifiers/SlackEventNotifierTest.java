@@ -7,8 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,7 +31,7 @@ class SlackEventNotifierTest {
 
     @Test
     void notifySendsPostRequestToWebhook() throws Exception {
-        notifier.notify(List.of(new Event("The Cure", "O2 Arena", LocalDate.of(2026, 5, 10), LocalTime.of(19, 0), "/the-cure")));
+        notifier.notify(List.of(new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "/the-cure")));
 
         verify(httpClient).send(any(HttpRequest.class), any());
     }
@@ -40,8 +39,8 @@ class SlackEventNotifierTest {
     @Test
     void buildPayloadContainsArtistAndDate() {
         List<Event> events = List.of(
-                new Event("The Cure", "O2 Arena", LocalDate.of(2026, 5, 10), LocalTime.of(19, 0), "/the-cure"),
-                new Event("Radiohead", "Wembley", LocalDate.of(2026, 5, 11), LocalTime.of(20, 0), "/radiohead")
+                new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "/the-cure"),
+                new Event("Radiohead", "Wembley", LocalDateTime.of(2026, 5, 11, 20, 0), "/radiohead")
         );
 
         String payload = notifier.buildPayload(events);

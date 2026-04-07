@@ -8,8 +8,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
 
@@ -42,13 +41,8 @@ class BanquetEventExtractorTest {
     }
 
     @Test
-    void firstEventHasCorrectDate() {
-        assertEquals(LocalDate.of(Year.now().getValue(), 4, 6), events.get(0).date());
-    }
-
-    @Test
-    void firstEventHasCorrectStartTime() {
-        assertEquals(LocalTime.of(19, 0), events.get(0).startTime());
+    void firstEventHasCorrectDateTime() {
+        assertEquals(LocalDateTime.of(Year.now().getValue(), 4, 6, 19, 0), events.get(0).dateTime());
     }
 
     @Test

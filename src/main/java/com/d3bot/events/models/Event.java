@@ -2,20 +2,19 @@ package com.d3bot.events.models;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-public record Event(String artist, String location, LocalDate date, LocalTime startTime, String url) {
+public record Event(String artist, String location, LocalDateTime dateTime, String url) {
 
-    private static final DateTimeFormatter FORMATTER = RFC_1123_DATE_TIME;
+    private static final DateTimeFormatter FORMATTER = ISO_LOCAL_DATE_TIME;
 
     public String checksum() {
         String input = String.join("|",
                 normalise(location),
-                normalise(FORMATTER.format(date))
+                normalise(FORMATTER.format(dateTime))
         );
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");

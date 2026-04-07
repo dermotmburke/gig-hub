@@ -1,5 +1,6 @@
 package com.d3bot.events.jobs;
 
+import com.d3bot.events.deduplication.EventDeduplicationService;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
 import com.d3bot.events.scrapers.EventScraper;
@@ -9,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class EventScrapeJob {
@@ -17,10 +19,13 @@ public class EventScrapeJob {
 
     private final List<EventScraper> scrapers;
     private final List<EventNotifier> notifiers;
+    private final Optional<EventDeduplicationService> deduplication;
 
-    public EventScrapeJob(List<EventScraper> scrapers, List<EventNotifier> notifiers) {
+    public EventScrapeJob(List<EventScraper> scrapers, List<EventNotifier> notifiers,
+                          Optional<EventDeduplicationService> deduplication) {
         this.scrapers = scrapers;
         this.notifiers = notifiers;
+        this.deduplication = deduplication;
     }
 
     @Scheduled(fixedRateString = "${scraper.interval-ms:3600000}", initialDelayString = "${scraper.initial-delay-ms:0}")
@@ -29,7 +34,14 @@ public class EventScrapeJob {
             try {
                 List<Event> events = scraper.scrape();
                 log.info("{} found {} events", scraper.getClass().getSimpleName(), events.size());
-                notifiers.forEach(n -> n.notify(events));
+
+                List<Event> newEvents = deduplication.map(d -> d.filter(events)).orElse(events);
+                if (newEvents.size() < events.size()) {
+                    log.info("Deduplicated: {} new, {} already sent", newEvents.size(), events.size() - newEvents.size());
+                }
+
+                notifiers.forEach(n -> n.notify(newEvents));
+                deduplication.ifPresent(d -> d.markSent(newEvents));
             } catch (Exception e) {
                 log.error("Failed to scrape {}: {}", scraper.getClass().getSimpleName(), e.getMessage());
             }
