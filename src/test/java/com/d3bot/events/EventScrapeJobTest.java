@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,7 +29,7 @@ class EventScrapeJobTest {
     @Test
     void scrapePassesExtractedEventsToNotifier() throws Exception {
         String html = Files.readString(new ClassPathResource("events.html").getFile().toPath());
-        when(eventFetcher.fetch(any())).thenReturn(html);
+        when(eventFetcher.fetch()).thenReturn(html);
 
         eventScrapeJob.scrape();
 
