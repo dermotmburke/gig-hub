@@ -12,15 +12,15 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class EventExtractorTest {
+class BanquetEventExtractorTest {
 
     static List<Event> events;
 
     @BeforeAll
     static void setup() throws IOException, URISyntaxException {
-        var resource = EventExtractorTest.class.getClassLoader().getResource("events.html");
+        var resource = BanquetEventExtractorTest.class.getClassLoader().getResource("events.html");
         String html = Files.readString(Path.of(resource.toURI()));
-        events = new EventExtractor().extract(html);
+        events = new BanquetEventExtractor().extract(html);
     }
 
     @Test
@@ -58,7 +58,7 @@ class EventExtractorTest {
         String html = "<a class=\"card\" href=\"/event\">" +
                       "<span class=\"title\">Monday 6th April at The Venue, 7pm</span>" +
                       "</a>";
-        assertEquals(0, new EventExtractor().extract(html).size());
+        assertEquals(0, new BanquetEventExtractor().extract(html).size());
     }
 
     @Test
@@ -66,7 +66,7 @@ class EventExtractorTest {
         String html = "<a class=\"card\" href=\"/event\">" +
                       "<span class=\"artist\">Some Artist</span>" +
                       "</a>";
-        assertEquals(0, new EventExtractor().extract(html).size());
+        assertEquals(0, new BanquetEventExtractor().extract(html).size());
     }
 
     @Test
@@ -75,7 +75,7 @@ class EventExtractorTest {
                       "<span class=\"artist\">Some Artist</span>" +
                       "<span class=\"title\">Monday 6th April at The Venue, 7pm</span>" +
                       "</a>";
-        assertEquals(0, new EventExtractor().extract(html).size());
+        assertEquals(0, new BanquetEventExtractor().extract(html).size());
     }
 
     @Test
@@ -84,6 +84,6 @@ class EventExtractorTest {
                       "<span class=\"artist\">Some Artist</span>" +
                       "<span class=\"title\">Monday 6th April</span>" +
                       "</a>";
-        assertEquals(0, new EventExtractor().extract(html).size());
+        assertEquals(0, new BanquetEventExtractor().extract(html).size());
     }
 }

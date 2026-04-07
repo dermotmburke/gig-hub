@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
-public class EventExtractor {
+public class BanquetEventExtractor {
     public List<Event> extract(String page) {
         return Jsoup.parse(page).select("a.card").stream()
                 .map(this::parseCard)

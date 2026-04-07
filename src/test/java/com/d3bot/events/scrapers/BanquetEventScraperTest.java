@@ -1,6 +1,6 @@
 package com.d3bot.events.scrapers;
 
-import com.d3bot.events.extractors.EventExtractor;
+import com.d3bot.events.extractors.BanquetEventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.models.Event;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 class BanquetEventScraperTest {
 
     private final EventFetcher eventFetcher = mock(EventFetcher.class);
-    private final BanquetEventScraper scraper = new BanquetEventScraper(eventFetcher, new EventExtractor());
+    private final BanquetEventScraper scraper = new BanquetEventScraper(eventFetcher, new BanquetEventExtractor());
 
     @BeforeEach
     void setUp() {
