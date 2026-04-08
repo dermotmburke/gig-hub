@@ -7,14 +7,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty({"ticketmaster.api-key", "ticketmaster.royalalberthall.venue-id"})
+@ConditionalOnProperty({"ticketmaster.api-key", "ticketmaster.venues.royalalberthall.id"})
 public class RoyalAlbertHallEventScraper extends TicketmasterEventScraper {
 
     public RoyalAlbertHallEventScraper(
             TicketmasterEventFetcher fetcher,
             TicketmasterEventExtractor extractor,
             @Value("${ticketmaster.api-key}") String apiKey,
-            @Value("${ticketmaster.royalalberthall.venue-id}") String venueId) {
+            @Value("${ticketmaster.venues.royalalberthall.id}") String venueId) {
         super(fetcher, extractor, apiKey, venueId);
     }
 }
