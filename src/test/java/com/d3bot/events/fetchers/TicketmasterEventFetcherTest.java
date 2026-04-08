@@ -18,7 +18,8 @@ import static org.mockito.Mockito.verify;
 class TicketmasterEventFetcherTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final TicketmasterEventFetcher fetcher = new TicketmasterEventFetcher(httpClient);
+    private final TicketmasterEventFetcher fetcher =
+            new TicketmasterEventFetcher(httpClient, "KovZpZAEdntA", "test-api-key") {};
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -31,16 +32,14 @@ class TicketmasterEventFetcherTest {
 
     @Test
     void fetchSendsGetRequestToTicketmasterApi() throws Exception {
-        fetcher.fetch("KovZpZAEdntA", "test-api-key");
+        fetcher.fetch();
 
         verify(httpClient).send(any(HttpRequest.class), any());
     }
 
     @Test
     void fetchReturnsResponseBody() throws Exception {
-        String body = fetcher.fetch("KovZpZAEdntA", "test-api-key");
-
-        assertEquals("{\"_embedded\":{}}", body);
+        assertEquals("{\"_embedded\":{}}", fetcher.fetch());
     }
 
     @Test
@@ -51,6 +50,6 @@ class TicketmasterEventFetcherTest {
         doReturn("Unauthorized").when(errorResponse).body();
         doReturn(errorResponse).when(httpClient).send(any(HttpRequest.class), any());
 
-        assertThrows(IOException.class, () -> fetcher.fetch("KovZpZAEdntA", "bad-key"));
+        assertThrows(IOException.class, () -> fetcher.fetch());
     }
 }

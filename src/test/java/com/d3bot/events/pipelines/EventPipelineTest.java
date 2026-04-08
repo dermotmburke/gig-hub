@@ -1,6 +1,8 @@
 package com.d3bot.events.pipelines;
 
-import com.d3bot.events.deduplication.EventDeduplicationService;
+import com.d3bot.events.deduplicators.EventDeduplicationService;
+import com.d3bot.events.extractors.EventExtractor;
+import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
 import org.junit.jupiter.api.Test;
@@ -23,10 +25,9 @@ class EventPipelineTest {
     private static final Event EVENT_B = new Event("Artist B", "Venue B", LocalDateTime.of(2026, 5, 2, 20, 0), "/b");
 
     private EventPipeline pipeline(List<Event> events, Optional<EventDeduplicationService> deduplication) {
-        return new EventPipeline(List.of(notifier), deduplication) {
-            @Override protected String fetch() { return "raw"; }
-            @Override protected List<Event> extract(String raw) { return events; }
-        };
+        EventFetcher fetcher = () -> "raw";
+        EventExtractor extractor = raw -> events;
+        return new EventPipeline(fetcher, extractor, List.of(notifier), deduplication) {};
     }
 
     @Test
@@ -68,10 +69,8 @@ class EventPipelineTest {
 
     @Test
     void runHandlesIOExceptionFromFetchGracefully() {
-        EventPipeline pipeline = new EventPipeline(List.of(notifier), Optional.empty()) {
-            @Override protected String fetch() throws IOException { throw new IOException("network error"); }
-            @Override protected List<Event> extract(String raw) { return List.of(); }
-        };
+        EventFetcher failingFetcher = () -> { throw new IOException("network error"); };
+        EventPipeline pipeline = new EventPipeline(failingFetcher, raw -> List.of(), List.of(notifier), Optional.empty()) {};
 
         assertDoesNotThrow(pipeline::run);
         verifyNoInteractions(notifier);
@@ -79,10 +78,8 @@ class EventPipelineTest {
 
     @Test
     void runHandlesInterruptedExceptionAndRestoresInterruptFlag() {
-        EventPipeline pipeline = new EventPipeline(List.of(notifier), Optional.empty()) {
-            @Override protected String fetch() throws InterruptedException { throw new InterruptedException(); }
-            @Override protected List<Event> extract(String raw) { return List.of(); }
-        };
+        EventFetcher interruptedFetcher = () -> { throw new InterruptedException(); };
+        EventPipeline pipeline = new EventPipeline(interruptedFetcher, raw -> List.of(), List.of(notifier), Optional.empty()) {};
 
         pipeline.run();
 

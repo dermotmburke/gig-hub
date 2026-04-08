@@ -1,4 +1,4 @@
-package com.d3bot.events.deduplication;
+package com.d3bot.events.deduplicators;
 
 import com.d3bot.events.models.Event;
 import com.fasterxml.jackson.databind.ObjectMapper;

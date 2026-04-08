@@ -1,14 +1,12 @@
 package com.d3bot.events.pipelines;
 
 import com.d3bot.events.extractors.BanquetEventExtractor;
-import com.d3bot.events.fetchers.EventFetcher;
+import com.d3bot.events.fetchers.BanquetEventFetcher;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.file.Files;
 import java.time.LocalDateTime;
@@ -18,26 +16,20 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class BanquetEventPipelineTest {
 
-    private final EventFetcher fetcher = mock(EventFetcher.class);
+    private final BanquetEventFetcher fetcher = mock(BanquetEventFetcher.class);
     private final EventNotifier notifier = mock(EventNotifier.class);
     private final BanquetEventPipeline pipeline =
             new BanquetEventPipeline(fetcher, new BanquetEventExtractor(), List.of(notifier), Optional.empty());
-
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(pipeline, "url", "https://test.example.com");
-    }
 
     @Test
     @SuppressWarnings("unchecked")
     void runNotifiesWithCorrectlyParsedEvents() throws Exception {
         String html = Files.readString(new ClassPathResource("events.html").getFile().toPath());
-        when(fetcher.fetch(any())).thenReturn(html);
+        when(fetcher.fetch()).thenReturn(html);
 
         pipeline.run();
 

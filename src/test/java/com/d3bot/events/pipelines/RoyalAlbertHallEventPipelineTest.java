@@ -1,7 +1,7 @@
 package com.d3bot.events.pipelines;
 
-import com.d3bot.events.extractors.RoyalAlbertHallExtractor;
-import com.d3bot.events.fetchers.TicketmasterEventFetcher;
+import com.d3bot.events.extractors.TicketmasterEventExtractor;
+import com.d3bot.events.fetchers.RoyalAlbertHallEventFetcher;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
 import org.junit.jupiter.api.Test;
@@ -15,12 +15,11 @@ import static org.mockito.Mockito.*;
 
 class RoyalAlbertHallEventPipelineTest {
 
-    private final TicketmasterEventFetcher fetcher = mock(TicketmasterEventFetcher.class);
-    private final RoyalAlbertHallExtractor extractor = mock(RoyalAlbertHallExtractor.class);
+    private final RoyalAlbertHallEventFetcher fetcher = mock(RoyalAlbertHallEventFetcher.class);
+    private final TicketmasterEventExtractor extractor = mock(TicketmasterEventExtractor.class);
     private final EventNotifier notifier = mock(EventNotifier.class);
     private final RoyalAlbertHallEventPipeline pipeline =
-            new RoyalAlbertHallEventPipeline(fetcher, extractor, "test-api-key", "KovZpZAEdntA",
-                    List.of(notifier), Optional.empty());
+            new RoyalAlbertHallEventPipeline(fetcher, extractor, List.of(notifier), Optional.empty());
 
     @Test
     void runFetchesFromTicketmasterAndNotifies() throws Exception {
@@ -28,7 +27,7 @@ class RoyalAlbertHallEventPipelineTest {
         List<Event> events = List.of(
                 new Event("Nick Cave", "Royal Albert Hall", LocalDateTime.of(2026, 9, 1, 19, 30), "https://example.com")
         );
-        when(fetcher.fetch("KovZpZAEdntA", "test-api-key")).thenReturn(json);
+        when(fetcher.fetch()).thenReturn(json);
         when(extractor.extract(json)).thenReturn(events);
 
         pipeline.run();
@@ -38,7 +37,7 @@ class RoyalAlbertHallEventPipelineTest {
 
     @Test
     void runHandlesInterruptedExceptionFromFetch() throws Exception {
-        when(fetcher.fetch(any(), any())).thenThrow(new InterruptedException("interrupted"));
+        when(fetcher.fetch()).thenThrow(new InterruptedException("interrupted"));
 
         pipeline.run();
 

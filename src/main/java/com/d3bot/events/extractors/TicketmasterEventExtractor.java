@@ -1,6 +1,7 @@
 package com.d3bot.events.extractors;
 
 import com.d3bot.events.models.Event;
+import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,7 +31,8 @@ import java.util.List;
  * }
  * }</pre>
  */
-public abstract class TicketmasterEventExtractor {
+@Service
+public class TicketmasterEventExtractor implements EventExtractor {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 

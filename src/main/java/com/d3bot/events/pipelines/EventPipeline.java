@@ -1,40 +1,35 @@
 package com.d3bot.events.pipelines;
 
-import com.d3bot.events.deduplication.EventDeduplicationService;
+import com.d3bot.events.deduplicators.EventDeduplicationService;
+import com.d3bot.events.extractors.EventExtractor;
+import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Base class for venue event pipelines. Each subclass represents a single venue and
- * implements {@link #fetch()} and {@link #extract(String)} for its specific data source.
- * The invariant lifecycle — deduplicate, notify, mark sent — is owned here.
+ * Base class for venue event pipelines. Subclasses wire together a venue-specific
+ * {@link EventFetcher} and {@link EventExtractor}; the invariant lifecycle —
+ * fetch, extract, deduplicate, notify, mark sent — is owned here.
  *
- * <p>To add a new venue, extend this class and supply its fetcher, extractor, and config:
+ * <p>To add a new Ticketmaster venue:
  *
  * <pre>{@code
  * @Component
- * @ConditionalOnProperty({"ticketmaster.api-key", "ticketmaster.venues.my-venue.id"})
+ * @ConditionalOnProperty({"fetchers.ticketmaster.api-key", "fetchers.ticketmaster.venues.my-venue.id"})
  * public class MyVenueEventPipeline extends EventPipeline {
  *
  *     public MyVenueEventPipeline(
- *             TicketmasterEventFetcher fetcher,
+ *             MyVenueEventFetcher fetcher,
  *             MyVenueExtractor extractor,
- *             @Value("${ticketmaster.api-key}") String apiKey,
- *             @Value("${ticketmaster.venues.my-venue.id}") String venueId,
  *             List<EventNotifier> notifiers,
  *             Optional<EventDeduplicationService> deduplication) {
- *         super(notifiers, deduplication);
- *         // ...
+ *         super(fetcher, extractor, notifiers, deduplication);
  *     }
- *
- *     @Override protected String fetch() throws IOException, InterruptedException { ... }
- *     @Override protected List<Event> extract(String raw) throws IOException { ... }
  * }
  * }</pre>
  */
@@ -42,22 +37,26 @@ public abstract class EventPipeline {
 
     private static final Logger log = LoggerFactory.getLogger(EventPipeline.class);
 
+    private final EventFetcher fetcher;
+    private final EventExtractor extractor;
     private final List<EventNotifier> notifiers;
     private final Optional<EventDeduplicationService> deduplication;
 
-    protected EventPipeline(List<EventNotifier> notifiers, Optional<EventDeduplicationService> deduplication) {
+    protected EventPipeline(
+            EventFetcher fetcher,
+            EventExtractor extractor,
+            List<EventNotifier> notifiers,
+            Optional<EventDeduplicationService> deduplication) {
+        this.fetcher = fetcher;
+        this.extractor = extractor;
         this.notifiers = notifiers;
         this.deduplication = deduplication;
     }
 
-    protected abstract String fetch() throws IOException, InterruptedException;
-
-    protected abstract List<Event> extract(String raw) throws IOException;
-
     public final void run() {
         try {
-            String raw = fetch();
-            List<Event> events = extract(raw);
+            String raw = fetcher.fetch();
+            List<Event> events = extractor.extract(raw);
             log.info("{} found {} events", getClass().getSimpleName(), events.size());
 
             List<Event> newEvents = deduplication.map(d -> d.filter(events)).orElse(events);
