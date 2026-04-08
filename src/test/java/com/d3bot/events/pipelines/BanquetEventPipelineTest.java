@@ -1,10 +1,12 @@
-package com.d3bot.events.scrapers;
+package com.d3bot.events.pipelines;
 
 import com.d3bot.events.extractors.BanquetEventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.models.Event;
+import com.d3bot.events.notifiers.EventNotifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -12,29 +14,36 @@ import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-class BanquetEventScraperTest {
+class BanquetEventPipelineTest {
 
-    private final EventFetcher eventFetcher = mock(EventFetcher.class);
-    private final BanquetEventScraper scraper = new BanquetEventScraper(eventFetcher, new BanquetEventExtractor());
+    private final EventFetcher fetcher = mock(EventFetcher.class);
+    private final EventNotifier notifier = mock(EventNotifier.class);
+    private final BanquetEventPipeline pipeline =
+            new BanquetEventPipeline(fetcher, new BanquetEventExtractor(), List.of(notifier), Optional.empty());
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(scraper, "url", "https://test.example.com");
+        ReflectionTestUtils.setField(pipeline, "url", "https://test.example.com");
     }
 
     @Test
-    void scrapeReturnsCorrectEvents() throws Exception {
+    @SuppressWarnings("unchecked")
+    void runNotifiesWithCorrectlyParsedEvents() throws Exception {
         String html = Files.readString(new ClassPathResource("events.html").getFile().toPath());
-        when(eventFetcher.fetch(any())).thenReturn(html);
+        when(fetcher.fetch(any())).thenReturn(html);
 
-        List<Event> events = scraper.scrape();
+        pipeline.run();
+
+        ArgumentCaptor<List<Event>> captor = ArgumentCaptor.forClass(List.class);
+        verify(notifier).notify(captor.capture());
+        List<Event> events = captor.getValue();
 
         assertEquals(47, events.size());
         assertEquals("Lightyear / Slow Gherkin", events.get(0).artist());
