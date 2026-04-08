@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-@ConditionalOnProperty({"fetchers.ticketmaster.api-key", "fetchers.ticketmaster.venues.royalalberthall.id"})
+@ConditionalOnProperty("fetchers.ticketmaster.api-key")
 public class RoyalAlbertHallEventPipeline extends EventPipeline {
 
     public RoyalAlbertHallEventPipeline(
