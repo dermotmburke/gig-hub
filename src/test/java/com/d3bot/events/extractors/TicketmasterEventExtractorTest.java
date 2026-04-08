@@ -24,7 +24,7 @@ class TicketmasterEventExtractorTest {
     static void setup() throws IOException, URISyntaxException {
         var resource = TicketmasterEventExtractorTest.class.getClassLoader().getResource("ticketmaster-events.json");
         String json = Files.readString(Path.of(resource.toURI()));
-        events = new TicketmasterEventExtractor().extract(json);
+        events = new RoyalAlbertHallExtractor().extract(json);
     }
 
     @Test
@@ -64,14 +64,14 @@ class TicketmasterEventExtractorTest {
 
     @Test
     void returnsEmptyListWhenNoEmbeddedNode() throws IOException {
-        List<Event> result = new TicketmasterEventExtractor().extract("{\"page\":{\"totalElements\":0}}");
+        List<Event> result = new RoyalAlbertHallExtractor().extract("{\"page\":{\"totalElements\":0}}");
 
         assertEquals(List.of(), result);
     }
 
     @Test
     void returnsEmptyListWhenEventsArrayMissing() throws IOException {
-        List<Event> result = new TicketmasterEventExtractor().extract("{\"_embedded\":{}}");
+        List<Event> result = new RoyalAlbertHallExtractor().extract("{\"_embedded\":{}}");
 
         assertEquals(List.of(), result);
     }
@@ -83,7 +83,7 @@ class TicketmasterEventExtractorTest {
                 "\"_embedded\":{\"venues\":[{\"name\":\"Venue\"}]}}" +
                 "]}}";
 
-        assertEquals(List.of(), new TicketmasterEventExtractor().extract(json));
+        assertEquals(List.of(), new RoyalAlbertHallExtractor().extract(json));
     }
 
     @Test
@@ -93,7 +93,7 @@ class TicketmasterEventExtractorTest {
                 "\"_embedded\":{\"venues\":[{\"name\":\"Venue\"}]}}" +
                 "]}}";
 
-        assertEquals(List.of(), new TicketmasterEventExtractor().extract(json));
+        assertEquals(List.of(), new RoyalAlbertHallExtractor().extract(json));
     }
 
     @Test
@@ -104,7 +104,7 @@ class TicketmasterEventExtractorTest {
                 "\"_embedded\":{}}" +
                 "]}}";
 
-        List<Event> result = new TicketmasterEventExtractor().extract(json);
+        List<Event> result = new RoyalAlbertHallExtractor().extract(json);
         assertEquals(1, result.size());
         assertEquals("Unknown Venue", result.get(0).location());
     }
