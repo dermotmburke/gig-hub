@@ -14,7 +14,7 @@ On a configurable schedule (default: hourly), gig-hub runs each configured pipel
 
 ```mermaid
 flowchart TD
-    Job["EventScrapeJob\n(scheduled)"]
+    Job["EventPipelineRunner\n(CommandLineRunner)"]
 
     Job --> BP["BanquetEventPipeline"]
     Job --> RP["RoyalAlbertHallEventPipeline"]
@@ -57,7 +57,6 @@ All configuration is via environment variables or `application.properties`.
 
 | Property | Env var | Default | Description |
 |---|---|---|---|
-| `scraper.interval-ms` | `SCRAPER_INTERVAL_MS` | `3600000` | How often to run pipelines, in milliseconds |
 | `slack.webhook-url` | `SLACK_WEBHOOK_URL` | *(unset)* | Slack incoming webhook URL — notifications only sent if set |
 | `redis.url` | `REDIS_URL` | *(unset)* | Redis connection URL — deduplication only enabled if set |
 
@@ -148,8 +147,8 @@ src/main/java/com/d3bot/events/
 ├── Main.java
 ├── models/
 │   └── Event.java                          # Immutable record (artist, location, dateTime, url)
-├── jobs/
-│   └── EventScrapeJob.java                 # Runs all pipelines on schedule
+├── runners/
+│   └── EventPipelineRunner.java            # Runs all pipelines on startup
 ├── pipelines/
 │   ├── EventPipeline.java                  # Abstract base — owns fetch/extract/dedup/notify lifecycle
 │   ├── BanquetEventPipeline.java           # Always active
