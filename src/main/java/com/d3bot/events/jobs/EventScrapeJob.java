@@ -44,7 +44,12 @@ public class EventScrapeJob implements CommandLineRunner {
                     log.info("Deduplicated: {} new, {} already sent", newEvents.size(), events.size() - newEvents.size());
                 }
 
-                notifiers.forEach(n -> n.notify(newEvents));
+                try {
+                    notifiers.forEach(n -> n.notify(newEvents));
+                } catch (Exception e) {
+                    log.error("Failed to notify for {}: {}", scraper.getClass().getSimpleName(), e.getMessage());
+                    continue;
+                }
                 deduplication.ifPresent(d -> d.markSent(newEvents));
             } catch (Exception e) {
                 log.error("Failed to scrape {}: {}", scraper.getClass().getSimpleName(), e.getMessage());
