@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 @Service
-public class BanquetEventExtractor {
+public class BanquetEventExtractor implements EventExtractor {
 
     private static final Pattern DATE_PATTERN = Pattern.compile("(\\d+)(?:st|nd|rd|th)\\s+(\\w+)");
     private static final Pattern TIME_PATTERN = Pattern.compile("(\\d+:\\d+[ap]m)", Pattern.CASE_INSENSITIVE);
