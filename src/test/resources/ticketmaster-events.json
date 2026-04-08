@@ -1,0 +1,62 @@
+{
+  "_embedded": {
+    "events": [
+      {
+        "name": "The National",
+        "url": "https://www.ticketmaster.com/the-national-london-12-06-2026/event/1A005704F2C9361F",
+        "dates": {
+          "start": {
+            "localDate": "2026-06-12",
+            "localTime": "19:30:00"
+          }
+        },
+        "_embedded": {
+          "venues": [
+            {
+              "name": "O2 Academy Brixton"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Fontaines D.C.",
+        "url": "https://www.ticketmaster.com/fontaines-dc-london-20-07-2026/event/1A005704F2C93620",
+        "dates": {
+          "start": {
+            "localDate": "2026-07-20",
+            "localTime": "20:00:00"
+          }
+        },
+        "_embedded": {
+          "venues": [
+            {
+              "name": "O2 Academy Brixton"
+            }
+          ]
+        }
+      },
+      {
+        "name": "No Time Provided Artist",
+        "url": "https://www.ticketmaster.com/no-time-event/event/1A005704F2C93621",
+        "dates": {
+          "start": {
+            "localDate": "2026-08-15"
+          }
+        },
+        "_embedded": {
+          "venues": [
+            {
+              "name": "O2 Academy Brixton"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "page": {
+    "size": 200,
+    "totalElements": 3,
+    "totalPages": 1,
+    "number": 0
+  }
+}
