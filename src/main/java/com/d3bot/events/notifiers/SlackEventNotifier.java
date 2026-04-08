@@ -1,6 +1,9 @@
 package com.d3bot.events.notifiers;
 
 import com.d3bot.events.models.Event;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,8 +26,11 @@ public class SlackEventNotifier implements EventNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(SlackEventNotifier.class);
 
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH);
+
     private final HttpClient httpClient;
     private final String webhookUrl;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SlackEventNotifier(
             HttpClient httpClient,
@@ -47,17 +53,14 @@ public class SlackEventNotifier implements EventNotifier {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.error("Slack notification failed with status {}: {}", response.statusCode(), response.body());
-            } else {
-                log.info("Notified Slack of {} events", events.size());
+                throw new RuntimeException("Slack notification failed with status " + response.statusCode() + ": " + response.body());
             }
+            log.info("Notified Slack of {} events", events.size());
         } catch (IOException | InterruptedException e) {
             log.error("Failed to send Slack notification", e);
             Thread.currentThread().interrupt();
         }
     }
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH);
 
     String buildPayload(List<Event> events) {
         String eventList = events.stream()
@@ -66,10 +69,12 @@ public class SlackEventNotifier implements EventNotifier {
                         : String.format("• *%s* — %s @ %s", e.artist(), e.dateTime().format(DATE_FORMATTER), e.location()))
                 .collect(Collectors.joining("\n"));
         String text = String.format("*%d upcoming events*\n%s", events.size(), eventList);
-        return "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"" + jsonEscape(text) + "\"}}]}";
-    }
 
-    private static String jsonEscape(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+        ObjectNode payload = objectMapper.createObjectNode().put("text", text);
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to build Slack payload", e);
+        }
     }
 }

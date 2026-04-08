@@ -4,7 +4,6 @@ import com.d3bot.events.deduplication.EventDeduplicationService;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.LoggingEventNotifier;
 import com.d3bot.events.scrapers.BanquetEventScraper;
-import com.d3bot.events.scrapers.RoyalAlbertHallEventScraper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,9 +23,6 @@ class EventScrapeJobTest {
     BanquetEventScraper banquetEventScraper;
 
     @MockBean
-    RoyalAlbertHallEventScraper royalAlbertHallEventScraper;
-
-    @MockBean
     LoggingEventNotifier loggingEventNotifier;
 
     @Autowired
@@ -35,14 +31,11 @@ class EventScrapeJobTest {
     @Test
     void scrapeNotifiesWithEventsFromEachScraper() throws Exception {
         List<Event> banquetEvents = List.of(new Event("Artist A", "Venue A", LocalDateTime.of(2026, 4, 7, 19, 0), "/a"));
-        List<Event> rahEvents = List.of(new Event("Artist B", "Royal Albert Hall", LocalDateTime.of(2026, 4, 8, 19, 0), "/b"));
         when(banquetEventScraper.scrape()).thenReturn(banquetEvents);
-        when(royalAlbertHallEventScraper.scrape()).thenReturn(rahEvents);
 
         eventScrapeJob.scrape();
 
         verify(loggingEventNotifier).notify(banquetEvents);
-        verify(loggingEventNotifier).notify(rahEvents);
     }
 
     @Test
@@ -54,10 +47,9 @@ class EventScrapeJobTest {
         EventDeduplicationService dedup = org.mockito.Mockito.mock(EventDeduplicationService.class);
         when(dedup.filter(allEvents)).thenReturn(List.of(newEvent));
         when(banquetEventScraper.scrape()).thenReturn(allEvents);
-        when(royalAlbertHallEventScraper.scrape()).thenReturn(List.of());
 
         EventScrapeJob jobWithDedup = new EventScrapeJob(
-                List.of(banquetEventScraper, royalAlbertHallEventScraper),
+                List.of(banquetEventScraper),
                 List.of(loggingEventNotifier),
                 Optional.of(dedup)
         );

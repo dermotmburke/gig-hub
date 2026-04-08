@@ -1,29 +1,20 @@
 package com.d3bot.events.scrapers;
 
-import com.d3bot.events.models.Event;
-import com.d3bot.events.fetchers.EventFetcher;
+import com.d3bot.events.extractors.TicketmasterEventExtractor;
+import com.d3bot.events.fetchers.TicketmasterEventFetcher;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.List;
-
 @Component
-public class RoyalAlbertHallEventScraper implements EventScraper {
+@ConditionalOnProperty({"ticketmaster.api-key", "ticketmaster.royalalberthall.venue-id"})
+public class RoyalAlbertHallEventScraper extends TicketmasterEventScraper {
 
-    private final EventFetcher eventFetcher;
-
-    @Value("${scrapers.royal-albert-hall.url:https://www.royalalberthall.com/tickets/events/}")
-    private String url;
-
-    public RoyalAlbertHallEventScraper(EventFetcher eventFetcher) {
-        this.eventFetcher = eventFetcher;
-    }
-
-    @Override
-    public List<Event> scrape() throws IOException {
-        String html = eventFetcher.fetch(url);
-        // TODO: implement Royal Albert Hall specific parsing
-        return List.of();
+    public RoyalAlbertHallEventScraper(
+            TicketmasterEventFetcher fetcher,
+            TicketmasterEventExtractor extractor,
+            @Value("${ticketmaster.api-key}") String apiKey,
+            @Value("${ticketmaster.royalalberthall.venue-id}") String venueId) {
+        super(fetcher, extractor, apiKey, venueId);
     }
 }

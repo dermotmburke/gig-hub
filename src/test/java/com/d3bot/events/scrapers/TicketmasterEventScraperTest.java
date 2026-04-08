@@ -20,8 +20,7 @@ class TicketmasterEventScraperTest {
 
     private final TicketmasterEventFetcher fetcher = mock(TicketmasterEventFetcher.class);
     private final TicketmasterEventExtractor extractor = mock(TicketmasterEventExtractor.class);
-    private final TicketmasterEventScraper scraper =
-            new TicketmasterEventScraper(fetcher, extractor, "test-api-key", "KovZpZAEdntA");
+    private final TicketmasterEventScraper scraper = new TicketmasterEventScraper(fetcher, extractor, "test-api-key", "KovZpZAEdntA") {};
 
     @Test
     void scrapeReturnsDelegatedEvents() throws Exception {

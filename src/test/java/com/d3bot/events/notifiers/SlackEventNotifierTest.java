@@ -56,13 +56,14 @@ class SlackEventNotifierTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void notifyLogsErrorOnNon200Response() throws Exception {
+    void notifyThrowsOnNon200Response() throws Exception {
         HttpResponse<String> errorResponse = mock(HttpResponse.class);
         doReturn(500).when(errorResponse).statusCode();
         doReturn("error").when(errorResponse).body();
         doReturn(errorResponse).when(httpClient).send(any(HttpRequest.class), any());
 
-        notifier.notify(List.of(new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com")));
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () ->
+                notifier.notify(List.of(new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com"))));
     }
 
     @Test
