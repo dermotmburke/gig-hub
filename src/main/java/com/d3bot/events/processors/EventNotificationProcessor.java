@@ -1,4 +1,4 @@
-package com.d3bot.events.routes;
+package com.d3bot.events.processors;
 
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
@@ -7,11 +7,11 @@ import org.apache.camel.Processor;
 
 import java.util.List;
 
-class EventNotificationProcessor implements Processor {
+public class EventNotificationProcessor implements Processor {
 
     private final List<EventNotifier> notifiers;
 
-    EventNotificationProcessor(List<EventNotifier> notifiers) {
+    public EventNotificationProcessor(List<EventNotifier> notifiers) {
         this.notifiers = notifiers;
     }
 

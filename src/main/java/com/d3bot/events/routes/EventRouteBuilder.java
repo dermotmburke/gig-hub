@@ -5,10 +5,10 @@ import com.d3bot.events.extractors.EventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
 import com.d3bot.events.processors.EventDeduplicatorProcessor;
+import com.d3bot.events.processors.EventFetchProcessor;
 import com.d3bot.events.processors.EventMarkSentProcessor;
 import com.d3bot.events.processors.EventNotificationProcessor;
 import org.apache.camel.LoggingLevel;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 
 import java.util.List;
@@ -25,7 +25,7 @@ import java.util.Optional;
 public abstract class EventRouteBuilder extends RouteBuilder {
 
     private final String routeId;
-    private final EventFetcher fetcher;
+    private final EventFetchProcessor fetchProcessor;
     private final EventExtractor extractor;
     private final EventDeduplicatorProcessor deduplicatorProcessor;
     private final EventNotificationProcessor notificationProcessor;
@@ -37,7 +37,7 @@ public abstract class EventRouteBuilder extends RouteBuilder {
             List<EventNotifier> notifiers,
             Optional<EventDeduplicator> deduplicator) {
         this.routeId = deriveRouteId(getClass());
-        this.fetcher = fetcher;
+        this.fetchProcessor = new EventFetchProcessor(fetcher);
         this.extractor = extractor;
         this.deduplicatorProcessor = new EventDeduplicatorProcessor(deduplicator);
         this.notificationProcessor = new EventNotificationProcessor(notifiers);
@@ -61,21 +61,10 @@ public abstract class EventRouteBuilder extends RouteBuilder {
 
         from("direct:" + routeId)
                 .routeId(routeId)
-                .process(fetchProcessor())
+                .process(fetchProcessor)
                 .bean(extractor)
                 .process(deduplicatorProcessor)
                 .process(notificationProcessor)
                 .process(markSentProcessor);
-    }
-
-    private Processor fetchProcessor() {
-        return exchange -> {
-            try {
-                exchange.getIn().setBody(fetcher.fetch());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                exchange.setRouteStop(true);
-            }
-        };
     }
 }

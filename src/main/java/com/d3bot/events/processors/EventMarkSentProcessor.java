@@ -1,4 +1,4 @@
-package com.d3bot.events.routes;
+package com.d3bot.events.processors;
 
 import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.models.Event;
@@ -8,11 +8,11 @@ import org.apache.camel.Processor;
 import java.util.List;
 import java.util.Optional;
 
-class EventMarkSentProcessor implements Processor {
+public class EventMarkSentProcessor implements Processor {
 
     private final Optional<EventDeduplicator> deduplicator;
 
-    EventMarkSentProcessor(Optional<EventDeduplicator> deduplicator) {
+    public EventMarkSentProcessor(Optional<EventDeduplicator> deduplicator) {
         this.deduplicator = deduplicator;
     }
 
