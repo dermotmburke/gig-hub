@@ -1,5 +1,7 @@
 package com.d3bot.events.fetchers;
 
+import com.d3bot.events.utilities.UrlFetcher;
+
 import java.io.IOException;
 
 /**

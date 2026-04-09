@@ -1,4 +1,4 @@
-package com.d3bot.events.routes;
+package com.d3bot.events.utilities;
 
 public class RouteIdBuilder {
 

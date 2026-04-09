@@ -1,5 +1,6 @@
 package com.d3bot.events.fetchers;
 
+import com.d3bot.events.utilities.UrlFetcher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

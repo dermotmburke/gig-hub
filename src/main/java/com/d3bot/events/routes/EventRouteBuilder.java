@@ -9,6 +9,7 @@ import com.d3bot.events.routes.processors.EventExtractorProcessor;
 import com.d3bot.events.routes.processors.EventFetchProcessor;
 import com.d3bot.events.routes.processors.EventMarkSentProcessor;
 import com.d3bot.events.routes.processors.EventNotificationProcessor;
+import com.d3bot.events.utilities.RouteIdBuilder;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 

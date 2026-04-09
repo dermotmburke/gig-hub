@@ -1,4 +1,4 @@
-package com.d3bot.events.fetchers;
+package com.d3bot.events.utilities;
 
 import org.springframework.stereotype.Component;
 
