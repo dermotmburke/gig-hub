@@ -23,8 +23,9 @@ public abstract class EventRouteBuilder extends RouteBuilder {
     private final String routeId;
     private final EventFetcher fetcher;
     private final EventExtractor extractor;
-    private final List<EventNotifier> notifiers;
-    private final Optional<EventDeduplicationService> deduplication;
+    private final EventDeduplicationProcessor deduplicationProcessor;
+    private final EventNotificationProcessor notificationProcessor;
+    private final EventMarkSentProcessor markSentProcessor;
 
     protected EventRouteBuilder(
             EventFetcher fetcher,
@@ -34,8 +35,9 @@ public abstract class EventRouteBuilder extends RouteBuilder {
         this.routeId = deriveRouteId(getClass());
         this.fetcher = fetcher;
         this.extractor = extractor;
-        this.notifiers = notifiers;
-        this.deduplication = deduplication;
+        this.deduplicationProcessor = new EventDeduplicationProcessor(deduplication);
+        this.notificationProcessor = new EventNotificationProcessor(notifiers);
+        this.markSentProcessor = new EventMarkSentProcessor(deduplication);
     }
 
     static String deriveRouteId(Class<?> clazz) {
@@ -62,8 +64,8 @@ public abstract class EventRouteBuilder extends RouteBuilder {
                 .routeId(routeId)
                 .bean(fetcher)
                 .bean(extractor)
-                .process(new EventDeduplicationProcessor(deduplication))
-                .process(new EventNotificationProcessor(notifiers))
-                .process(new EventMarkSentProcessor(deduplication));
+                .process(deduplicationProcessor)
+                .process(notificationProcessor)
+                .process(markSentProcessor);
     }
 }
