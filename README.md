@@ -4,37 +4,36 @@ A Spring Boot application that scrapes upcoming music events and delivers them t
 
 ## How it works
 
-On a configurable schedule (default: hourly), gig-hub runs each configured pipeline:
+On a configurable schedule (default: hourly), gig-hub runs each configured event pipeline using [Apache Camel](https://camel.apache.org/):
 
-1. Fetches event listings from the venue's data source
-2. Extracts structured events from the response
-3. Filters out events already seen (using Redis keyed on a checksum of venue + date/time)
-4. Posts new events to a Slack channel via an incoming webhook
-5. Marks the new events as sent in Redis with a TTL set to expire the day after the event
+1. A Camel timer triggers the scheduler, which fires each venue's pipeline route
+2. Each pipeline route: fetches → extracts → deduplicates → notifies → marks sent
+3. Deduplication uses Redis keyed on a checksum of venue + date/time (skipped if Redis is not configured)
+4. New events are posted to a Slack channel via an incoming webhook
+5. Sent events are marked in Redis with a TTL set to expire the day after the event
+
+Distributed traces are exported via OpenTelemetry (OTLP/HTTP) — each pipeline run produces a span tree visible in Jaeger or Grafana Tempo.
 
 ```mermaid
 flowchart TD
-    Job["EventPipelineRunner\n(CommandLineRunner)"]
+    Scheduler["EventSchedulerRoute\n(Camel timer)"]
 
-    Job --> BP["BanquetEventPipeline"]
-    Job --> RP["RoyalAlbertHallEventPipeline"]
+    Scheduler --> BR["BanquetEventRouteBuilder\n(direct:banquet-pipeline)"]
+    Scheduler --> RR["RoyalAlbertHallEventRouteBuilder\n(direct:royal-albert-hall-pipeline)"]
 
-    BP --> BF["BanquetEventFetcher\n(Jsoup / HTML)"]
-    BP --> BE["BanquetEventExtractor"]
+    BR --> BF["BanquetEventFetcher\n(HTTP / HTML)"]
+    RR --> RF["RoyalAlbertHallEventFetcher\n(Ticketmaster API)"]
 
-    RP --> RF["RoyalAlbertHallEventFetcher\n(Ticketmaster API)"]
-    RP --> TE["TicketmasterEventExtractor"]
-
-    BF --> |raw HTML| BE
-    RF --> |raw JSON| TE
+    BF --> |raw HTML| BE["BanquetEventExtractor"]
+    RF --> |raw JSON| TE["TicketmasterEventExtractor"]
 
     BE --> |List&lt;Event&gt;| Dedup
     TE --> |List&lt;Event&gt;| Dedup
 
-    Dedup{"EventDeduplicator\n(optional — requires Redis)"}
+    Dedup{"EventDeduplicatorProcessor\n(optional — requires Redis)"}
     Dedup --> |new events only| Notify
 
-    Notify["Notifiers"]
+    Notify["EventNotificationProcessor"]
     Notify --> Log["LoggingEventNotifier\n(always active)"]
     Notify --> Slack["SlackEventNotifier\n(requires slack.webhook-url)"]
 
@@ -73,6 +72,21 @@ To find the Ticketmaster venue ID for a venue:
 ```bash
 curl "https://app.ticketmaster.com/discovery/v2/venues.json?keyword=Royal+Albert+Hall&countryCode=GB&apikey=YOUR_API_KEY"
 ```
+
+### Scheduling
+
+| Property | Env var | Default | Description |
+|---|---|---|---|
+| `scraper.interval-ms` | `SCRAPER_INTERVAL_MS` | `3600000` (1 hour) | How often to run all pipelines, in milliseconds |
+
+### OpenTelemetry
+
+| Property | Env var | Default | Description |
+|---|---|---|---|
+| `otel.service.name` | `OTEL_SERVICE_NAME` | `gig-hub` | Service name reported in traces |
+| `otel.exporter.otlp.endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP collector endpoint (Jaeger, Grafana Tempo, etc.) |
+
+Traces are exported via OTLP HTTP/protobuf to `<endpoint>/v1/traces`. To disable tracing, set `camel.opentelemetry.enabled=false`.
 
 ### Slack
 
@@ -144,18 +158,23 @@ The Docker image is published to `ghcr.io/dermotmburke/gig-hub` tagged with `lat
 
 ```
 src/main/java/com/d3bot/events/
-├── Main.java
+├── Main.java                               # @SpringBootApplication + @CamelOpenTelemetry
 ├── models/
 │   └── Event.java                          # Immutable record (artist, location, dateTime, url)
-├── runners/
-│   └── EventPipelineRunner.java            # Runs all pipelines on startup
-├── pipelines/
-│   ├── EventPipeline.java                  # Abstract base — owns fetch/extract/dedup/notify lifecycle
-│   ├── BanquetEventPipeline.java           # Always active
-│   └── RoyalAlbertHallEventPipeline.java   # Active when Ticketmaster properties are set
+├── routes/
+│   ├── EventRouteBuilder.java              # Abstract Camel route: fetch→extract→dedup→notify→markSent
+│   ├── EventSchedulerRoute.java            # Camel timer — fires each pipeline route on schedule
+│   ├── BanquetEventRouteBuilder.java       # Always active
+│   ├── RoyalAlbertHallEventRouteBuilder.java  # Active when Ticketmaster properties are set
+│   └── processors/
+│       ├── EventFetchProcessor.java        # Calls EventFetcher, handles InterruptedException
+│       ├── EventExtractorProcessor.java    # Calls EventExtractor, sets List<Event> body
+│       ├── EventDeduplicatorProcessor.java # Filters already-seen events via Redis
+│       ├── EventNotificationProcessor.java # Fans out to all EventNotifiers
+│       └── EventMarkSentProcessor.java     # Marks new events as sent in Redis
 ├── fetchers/
 │   ├── EventFetcher.java                   # Interface: fetch() → String
-│   ├── BanquetEventFetcher.java            # HTML fetch via Jsoup
+│   ├── BanquetEventFetcher.java            # Delegates to UrlFetcher
 │   ├── TicketmasterEventFetcher.java       # Abstract base for Ticketmaster API fetches
 │   └── RoyalAlbertHallEventFetcher.java    # Supplies venue ID from config
 ├── extractors/
@@ -167,8 +186,12 @@ src/main/java/com/d3bot/events/
 │   ├── LoggingEventNotifier.java           # Always active
 │   └── SlackEventNotifier.java             # Active when slack.webhook-url is set
 ├── deduplicators/
-│   └── EventDeduplicator.java               # Active when redis.url is set
+│   └── EventDeduplicator.java              # Active when redis.url is set
+├── utilities/
+│   ├── UrlFetcher.java                     # Shared HTTP GET via Java HttpClient
+│   └── RouteIdBuilder.java                 # Derives kebab-case route IDs from class names
 └── config/
-    ├── HttpClientConfig.java
-    └── RedisConfig.java                    # Active when redis.url is set
+    ├── HttpClientConfig.java               # Java HttpClient bean
+    ├── RedisConfig.java                    # Active when redis.url is set
+    └── OpenTelemetryConfig.java            # OTLP/HTTP exporter — sends traces to Jaeger/Tempo
 ```
