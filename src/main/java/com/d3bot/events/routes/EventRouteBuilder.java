@@ -5,6 +5,7 @@ import com.d3bot.events.extractors.EventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
 import com.d3bot.events.processors.EventDeduplicatorProcessor;
+import com.d3bot.events.processors.EventExtractorProcessor;
 import com.d3bot.events.processors.EventFetchProcessor;
 import com.d3bot.events.processors.EventMarkSentProcessor;
 import com.d3bot.events.processors.EventNotificationProcessor;
@@ -26,7 +27,7 @@ public abstract class EventRouteBuilder extends RouteBuilder {
 
     private final String routeId;
     private final EventFetchProcessor fetchProcessor;
-    private final EventExtractor extractor;
+    private final EventExtractorProcessor extractorProcessor;
     private final EventDeduplicatorProcessor deduplicatorProcessor;
     private final EventNotificationProcessor notificationProcessor;
     private final EventMarkSentProcessor markSentProcessor;
@@ -38,7 +39,7 @@ public abstract class EventRouteBuilder extends RouteBuilder {
             Optional<EventDeduplicator> deduplicator) {
         this.routeId = deriveRouteId(getClass());
         this.fetchProcessor = new EventFetchProcessor(fetcher);
-        this.extractor = extractor;
+        this.extractorProcessor = new EventExtractorProcessor(extractor);
         this.deduplicatorProcessor = new EventDeduplicatorProcessor(deduplicator);
         this.notificationProcessor = new EventNotificationProcessor(notifiers);
         this.markSentProcessor = new EventMarkSentProcessor(deduplicator);
@@ -62,7 +63,7 @@ public abstract class EventRouteBuilder extends RouteBuilder {
         from("direct:" + routeId)
                 .routeId(routeId)
                 .process(fetchProcessor)
-                .bean(extractor)
+                .process(extractorProcessor)
                 .process(deduplicatorProcessor)
                 .process(notificationProcessor)
                 .process(markSentProcessor);
