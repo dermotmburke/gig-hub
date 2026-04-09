@@ -4,11 +4,11 @@ import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.EventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
-import com.d3bot.events.processors.EventDeduplicatorProcessor;
-import com.d3bot.events.processors.EventExtractorProcessor;
-import com.d3bot.events.processors.EventFetchProcessor;
-import com.d3bot.events.processors.EventMarkSentProcessor;
-import com.d3bot.events.processors.EventNotificationProcessor;
+import com.d3bot.events.routes.processors.EventDeduplicatorProcessor;
+import com.d3bot.events.routes.processors.EventExtractorProcessor;
+import com.d3bot.events.routes.processors.EventFetchProcessor;
+import com.d3bot.events.routes.processors.EventMarkSentProcessor;
+import com.d3bot.events.routes.processors.EventNotificationProcessor;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 
@@ -37,7 +37,7 @@ public abstract class EventRouteBuilder extends RouteBuilder {
             EventExtractor extractor,
             List<EventNotifier> notifiers,
             Optional<EventDeduplicator> deduplicator) {
-        this.routeId = RouteIdDeriver.deriveRouteId(getClass());
+        this.routeId = RouteIdBuilder.build(getClass());
         this.fetchProcessor = new EventFetchProcessor(fetcher);
         this.extractorProcessor = new EventExtractorProcessor(extractor);
         this.deduplicatorProcessor = new EventDeduplicatorProcessor(deduplicator);

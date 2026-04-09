@@ -115,7 +115,6 @@
                             <excludes>
                                 <exclude>com/d3bot/events/Main.class</exclude>
                                 <exclude>com/d3bot/events/config/RedisConfig.class</exclude>
-                                <exclude>com/d3bot/events/fetchers/BanquetEventFetcher.class</exclude>
                             </excludes>
                         </configuration>
                     </execution>

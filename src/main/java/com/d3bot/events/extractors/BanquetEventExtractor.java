@@ -33,13 +33,13 @@ public class BanquetEventExtractor implements EventExtractor {
     }
 
     private Event parseCard(Element card) {
-        var artistEl = card.selectFirst("span.artist");
-        var titleEl = card.selectFirst("span.title");
+        var artistElement = card.selectFirst("span.artist");
+        var titleElement = card.selectFirst("span.title");
         var url = card.absUrl("href");
-        if (artistEl == null || titleEl == null || url.isEmpty()) {
+        if (artistElement == null || titleElement == null || url.isEmpty()) {
             return null;
         }
-        var titleParts = titleEl.text().split(" at ", 2);
+        var titleParts = titleElement.text().split(" at ", 2);
         if (titleParts.length < 2) {
             return null;
         }
@@ -47,7 +47,7 @@ public class BanquetEventExtractor implements EventExtractor {
         if (dateTime == null) {
             return null;
         }
-        return new Event(getArtist(artistEl), getLocation(titleParts[1]), dateTime, url);
+        return new Event(getArtist(artistElement), getLocation(titleParts[1]), dateTime, url);
     }
 
     private String getArtist(Element artistEl) {

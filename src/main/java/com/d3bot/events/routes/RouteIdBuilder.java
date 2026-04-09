@@ -1,10 +1,10 @@
 package com.d3bot.events.routes;
 
-public class RouteIdDeriver {
+public class RouteIdBuilder {
 
-    private RouteIdDeriver() {}
+    private RouteIdBuilder() {}
 
-    public static String deriveRouteId(Class<?> clazz) {
+    public static String build(Class<?> clazz) {
         String name = clazz.getSimpleName().replace("EventRouteBuilder", "");
         return name.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase() + "-pipeline";
     }

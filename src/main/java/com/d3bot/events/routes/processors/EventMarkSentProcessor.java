@@ -1,4 +1,4 @@
-package com.d3bot.events.processors;
+package com.d3bot.events.routes.processors;
 
 import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.models.Event;
