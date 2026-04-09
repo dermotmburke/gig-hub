@@ -20,6 +20,7 @@ import java.util.List;
 public class EventDeduplicator {
 
     private static final Logger log = LoggerFactory.getLogger(EventDeduplicator.class);
+    public static final int TTL_DAYS_AFTER_EVENT = 2; // expire event from cache 2 days after event - just in case it still appears in fetched list
 
     private final JedisPooled jedis;
     private final ObjectMapper objectMapper;
@@ -45,7 +46,7 @@ public class EventDeduplicator {
     }
 
     private static long ttlSecondsFor(Event event) {
-        LocalDateTime expiry = event.dateTime().toLocalDate().plusDays(1).atStartOfDay();
+        LocalDateTime expiry = event.dateTime().toLocalDate().plusDays(TTL_DAYS_AFTER_EVENT).atStartOfDay();
         long seconds = Duration.between(LocalDateTime.now(), expiry).getSeconds();
         return Math.max(seconds, 60L);
     }
