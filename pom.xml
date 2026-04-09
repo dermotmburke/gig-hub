@@ -12,7 +12,7 @@
 
     <groupId>com.d3bot</groupId>
     <artifactId>gig-hub</artifactId>
-    <version>0.13-SNAPSHOT</version>
+    <version>0.14-SNAPSHOT</version>
 
     <properties>
         <java.version>21</java.version>
