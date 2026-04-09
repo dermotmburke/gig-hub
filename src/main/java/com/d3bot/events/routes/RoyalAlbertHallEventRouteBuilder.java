@@ -1,6 +1,6 @@
-package com.d3bot.events.pipelines;
+package com.d3bot.events.routes;
 
-import com.d3bot.events.deduplicators.EventDeduplicationService;
+import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.TicketmasterEventExtractor;
 import com.d3bot.events.fetchers.RoyalAlbertHallEventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
@@ -12,13 +12,13 @@ import java.util.Optional;
 
 @Component
 @ConditionalOnProperty("fetchers.ticketmaster.api-key")
-public class RoyalAlbertHallEventPipeline extends EventPipeline {
+public class RoyalAlbertHallEventRouteBuilder extends EventRouteBuilder {
 
-    public RoyalAlbertHallEventPipeline(
+    public RoyalAlbertHallEventRouteBuilder(
             RoyalAlbertHallEventFetcher fetcher,
             TicketmasterEventExtractor extractor,
             List<EventNotifier> notifiers,
-            Optional<EventDeduplicationService> deduplication) {
-        super(fetcher, extractor, notifiers, deduplication);
+            Optional<EventDeduplicator> deduplicator) {
+        super(fetcher, extractor, notifiers, deduplicator);
     }
 }

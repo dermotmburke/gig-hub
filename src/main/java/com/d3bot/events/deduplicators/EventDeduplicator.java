@@ -17,14 +17,15 @@ import java.util.List;
 
 @Service
 @ConditionalOnProperty("redis.url")
-public class EventDeduplicationService {
+public class EventDeduplicator {
 
-    private static final Logger log = LoggerFactory.getLogger(EventDeduplicationService.class);
+    private static final Logger log = LoggerFactory.getLogger(EventDeduplicator.class);
+    public static final int TTL_DAYS_AFTER_EVENT = 2; // expire event from cache 2 days after event - just in case it still appears in fetched list
 
     private final JedisPooled jedis;
     private final ObjectMapper objectMapper;
 
-    public EventDeduplicationService(JedisPooled jedis, ObjectMapper objectMapper) {
+    public EventDeduplicator(JedisPooled jedis, ObjectMapper objectMapper) {
         this.jedis = jedis;
         this.objectMapper = objectMapper;
     }
@@ -45,7 +46,7 @@ public class EventDeduplicationService {
     }
 
     private static long ttlSecondsFor(Event event) {
-        LocalDateTime expiry = event.dateTime().toLocalDate().plusDays(1).atStartOfDay();
+        LocalDateTime expiry = event.dateTime().toLocalDate().plusDays(TTL_DAYS_AFTER_EVENT).atStartOfDay();
         long seconds = Duration.between(LocalDateTime.now(), expiry).getSeconds();
         return Math.max(seconds, 60L);
     }
