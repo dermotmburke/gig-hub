@@ -62,8 +62,8 @@ public abstract class EventRouteBuilder extends RouteBuilder {
 
         from("direct:" + routeId)
                 .routeId(routeId)
-                .bean(fetcher, "fetch")
-                .bean(extractor, "extract")
+                .bean(fetcher)
+                .bean(extractor)
                 .process(this::deduplicate)
                 .process(this::notifyAll)
                 .process(this::markSent);
