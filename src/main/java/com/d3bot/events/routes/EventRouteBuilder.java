@@ -51,18 +51,20 @@ public abstract class EventRouteBuilder extends RouteBuilder {
 
     @Override
     public void configure() {
-        onException(InterruptedException.class)
-                .handled(true)
-                .log(LoggingLevel.ERROR, "Pipeline interrupted for " + routeId)
-                .process(exchange -> Thread.currentThread().interrupt());
-
         onException(Exception.class)
                 .handled(true)
                 .log(LoggingLevel.ERROR, "Pipeline failed for " + routeId + ": ${exception.message}");
 
         from("direct:" + routeId)
                 .routeId(routeId)
-                .bean(fetcher)
+                .process(exchange -> {
+                    try {
+                        exchange.getIn().setBody(fetcher.fetch());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        exchange.setRouteStop(true);
+                    }
+                })
                 .bean(extractor)
                 .process(deduplicatorProcessor)
                 .process(notificationProcessor)
