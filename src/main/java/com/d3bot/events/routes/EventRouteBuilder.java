@@ -4,7 +4,11 @@ import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.EventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
+import com.d3bot.events.processors.EventDeduplicatorProcessor;
+import com.d3bot.events.processors.EventMarkSentProcessor;
+import com.d3bot.events.processors.EventNotificationProcessor;
 import org.apache.camel.LoggingLevel;
+import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 
 import java.util.List;
@@ -57,17 +61,21 @@ public abstract class EventRouteBuilder extends RouteBuilder {
 
         from("direct:" + routeId)
                 .routeId(routeId)
-                .process(exchange -> {
-                    try {
-                        exchange.getIn().setBody(fetcher.fetch());
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        exchange.setRouteStop(true);
-                    }
-                })
+                .process(fetchProcessor())
                 .bean(extractor)
                 .process(deduplicatorProcessor)
                 .process(notificationProcessor)
                 .process(markSentProcessor);
+    }
+
+    private Processor fetchProcessor() {
+        return exchange -> {
+            try {
+                exchange.getIn().setBody(fetcher.fetch());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                exchange.setRouteStop(true);
+            }
+        };
     }
 }
