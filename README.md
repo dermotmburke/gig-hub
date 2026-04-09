@@ -19,10 +19,10 @@ flowchart TD
     Scheduler["EventSchedulerRoute\n(Camel timer)"]
 
     Scheduler --> BR["BanquetEventRouteBuilder\n(direct:banquet-pipeline)"]
-    Scheduler --> RR["RoyalAlbertHallEventRouteBuilder\n(direct:royal-albert-hall-pipeline)"]
+    Scheduler --> TM["TicketmasterVenueEventRouteBuilder ×N\n(direct:&lt;venue&gt;-pipeline)"]
 
     BR --> BF["BanquetEventFetcher\n(HTTP / HTML)"]
-    RR --> RF["RoyalAlbertHallEventFetcher\n(Ticketmaster API)"]
+    TM --> RF["TicketmasterEventFetcher\n(Ticketmaster API)"]
 
     BF --> |raw HTML| BE["BanquetEventExtractor"]
     RF --> |raw JSON| TE["TicketmasterEventExtractor"]
@@ -46,7 +46,12 @@ flowchart TD
 | Venue | Source | Enabled |
 |---|---|---|
 | [Banquet Records](https://www.banquetrecords.com) | HTML scrape | Always |
-| Royal Albert Hall | Ticketmaster API | When `fetchers.ticketmaster.*` properties are set |
+| Royal Albert Hall | Ticketmaster API | When `fetchers.ticketmaster.api-key` and `fetchers.ticketmaster.venues.royal-albert-hall.id` are set |
+| Brixton Academy | Ticketmaster API | When `fetchers.ticketmaster.api-key` and `fetchers.ticketmaster.venues.brixton-academy.id` are set |
+| Eventim Apollo | Ticketmaster API | When `fetchers.ticketmaster.api-key` and `fetchers.ticketmaster.venues.eventim-apollo.id` are set |
+| Royal Festival Hall | Ticketmaster API | When `fetchers.ticketmaster.api-key` and `fetchers.ticketmaster.venues.royal-festival-hall.id` are set |
+
+Any number of additional Ticketmaster venues can be added with no code changes — see [Adding a Ticketmaster venue](#adding-a-ticketmaster-venue).
 
 ## Configuration
 
@@ -64,20 +69,14 @@ All configuration is via environment variables or `application.properties`.
 | Property | Env var | Default | Description |
 |---|---|---|---|
 | `fetchers.banquet.url` | `FETCHERS_BANQUET_URL` | Banquet events URL | Override the Banquet Records scrape URL |
-| `fetchers.ticketmaster.api-key` | `FETCHERS_TICKETMASTER_API_KEY` | *(unset)* | Ticketmaster Discovery API consumer key — required to enable Ticketmaster venues |
-| `fetchers.ticketmaster.venues.royalalberthall.id` | `FETCHERS_TICKETMASTER_VENUES_ROYALALBERTHALL_ID` | *(unset)* | Ticketmaster venue ID for the Royal Albert Hall — enables the RAH pipeline when set alongside `fetchers.ticketmaster.api-key` |
-
-To find the Ticketmaster venue ID for a venue:
-
-```bash
-curl "https://app.ticketmaster.com/discovery/v2/venues.json?keyword=Royal+Albert+Hall&countryCode=GB&apikey=YOUR_API_KEY"
-```
+| `fetchers.ticketmaster.api-key` | `FETCHERS_TICKETMASTER_API_KEY` | *(unset)* | Ticketmaster Discovery API consumer key — required to enable any Ticketmaster venue |
+| `fetchers.ticketmaster.venues.<name>.id` | `FETCHERS_TICKETMASTER_VENUES_<NAME>_ID` | *(unset)* | Ticketmaster venue ID for a named venue — one entry per venue, kebab-case name |
 
 ### Scheduling
 
 | Property | Env var | Default | Description |
 |---|---|---|---|
-| `scraper.interval-ms` | `SCRAPER_INTERVAL_MS` | `3600000` (1 hour) | How often to run all pipelines, in milliseconds |
+| `runner.interval-ms` | `RUNNER_INTERVAL_MS` | `3600000` (1 hour) | How often to run all pipelines, in milliseconds |
 
 ### OpenTelemetry
 
@@ -102,6 +101,20 @@ REDIS_URL=rediss://default:<password>@<host>:6379
 
 If `REDIS_URL` is not set the app runs without deduplication — every event is notified on every run.
 
+## Adding a Ticketmaster venue
+
+No code changes needed. Add one property to `application.properties` (or the equivalent env var):
+
+```properties
+fetchers.ticketmaster.venues.my-venue.id=KovZ...
+```
+
+The venue name (e.g. `my-venue`) must be kebab-case — it becomes the Camel route ID (`my-venue-pipeline`) and the Redis deduplication key prefix. To find the Ticketmaster venue ID:
+
+```bash
+curl "https://app.ticketmaster.com/discovery/v2/venues.json?keyword=My+Venue&countryCode=GB&apikey=YOUR_API_KEY"
+```
+
 ## Running locally
 
 **Prerequisites:** Java 21, Maven
@@ -115,9 +128,10 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/... \
 REDIS_URL=rediss://default:...@...upstash.io:6379 \
 mvn spring-boot:run
 
-# Run with Ticketmaster (Royal Albert Hall)
+# Run with Ticketmaster venues
 FETCHERS_TICKETMASTER_API_KEY=your_consumer_key \
-FETCHERS_TICKETMASTER_VENUES_ROYALALBERTHALL_ID=KovZpZAEdntA \
+FETCHERS_TICKETMASTER_VENUES_ROYAL_ALBERT_HALL_ID=KovZ9177Arf \
+FETCHERS_TICKETMASTER_VENUES_BRIXTON_ACADEMY_ID=KovZ91777af \
 mvn spring-boot:run
 ```
 
@@ -128,7 +142,8 @@ docker run \
   -e SLACK_WEBHOOK_URL=https://hooks.slack.com/services/... \
   -e REDIS_URL=rediss://default:...@...upstash.io:6379 \
   -e FETCHERS_TICKETMASTER_API_KEY=your_consumer_key \
-  -e FETCHERS_TICKETMASTER_VENUES_ROYALALBERTHALL_ID=KovZpZAEdntA \
+  -e FETCHERS_TICKETMASTER_VENUES_ROYAL_ALBERT_HALL_ID=KovZ9177Arf \
+  -e FETCHERS_TICKETMASTER_VENUES_BRIXTON_ACADEMY_ID=KovZ91777af \
   ghcr.io/dermotmburke/gig-hub:latest
 ```
 
@@ -165,7 +180,7 @@ src/main/java/com/d3bot/events/
 │   ├── EventRouteBuilder.java              # Abstract Camel route: fetch→extract→dedup→notify→markSent
 │   ├── EventSchedulerRoute.java            # Camel timer — fires each pipeline route on schedule
 │   ├── BanquetEventRouteBuilder.java       # Always active
-│   ├── RoyalAlbertHallEventRouteBuilder.java  # Active when Ticketmaster properties are set
+│   ├── TicketmasterVenueEventRouteBuilder.java  # One instance per configured Ticketmaster venue
 │   └── processors/
 │       ├── EventFetchProcessor.java        # Calls EventFetcher, handles InterruptedException
 │       ├── EventExtractorProcessor.java    # Calls EventExtractor, sets List<Event> body
@@ -175,8 +190,7 @@ src/main/java/com/d3bot/events/
 ├── fetchers/
 │   ├── EventFetcher.java                   # Interface: fetch() → String
 │   ├── BanquetEventFetcher.java            # Delegates to UrlFetcher
-│   ├── TicketmasterEventFetcher.java       # Abstract base for Ticketmaster API fetches
-│   └── RoyalAlbertHallEventFetcher.java    # Supplies venue ID from config
+│   └── TicketmasterEventFetcher.java       # Ticketmaster Discovery API — instantiated per venue
 ├── extractors/
 │   ├── EventExtractor.java                 # Interface: extract(String) → List<Event>
 │   ├── BanquetEventExtractor.java          # HTML parsing via Jsoup
@@ -193,5 +207,7 @@ src/main/java/com/d3bot/events/
 └── config/
     ├── HttpClientConfig.java               # Java HttpClient bean
     ├── RedisConfig.java                    # Active when redis.url is set
-    └── OpenTelemetryConfig.java            # OTLP/HTTP exporter — sends traces to Jaeger/Tempo
+    ├── OpenTelemetryConfig.java            # OTLP/HTTP exporter — sends traces to Jaeger/Tempo
+    ├── TicketmasterRouteBuilderFactory.java # Creates TicketmasterVenueEventRouteBuilder instances
+    └── TicketmasterVenueBeanRegistrar.java  # Registers one route builder bean per configured venue
 ```
