@@ -19,7 +19,7 @@ public class EventSchedulerRoute extends RouteBuilder {
     public EventSchedulerRoute(
             ProducerTemplate producerTemplate,
             List<EventRouteBuilder> pipelineRoutes,
-            @Value("${scraper.interval-ms:3600000}") long intervalMs) {
+            @Value("${runner.interval-ms:3600000}") long intervalMs) {
         this.producerTemplate = producerTemplate;
         this.pipelineRoutes = pipelineRoutes;
         this.intervalMs = intervalMs;
