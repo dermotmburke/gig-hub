@@ -17,6 +17,6 @@ public class BanquetEventRouteBuilder extends EventRouteBuilder {
             BanquetEventExtractor extractor,
             List<EventNotifier> notifiers,
             Optional<EventDeduplicationService> deduplication) {
-        super("banquet-pipeline", fetcher, extractor, notifiers, deduplication);
+        super(fetcher, extractor, notifiers, deduplication);
     }
 }

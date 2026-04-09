@@ -48,7 +48,7 @@ class RoyalAlbertHallEventRouteBuilderTest {
         context.start();
 
         try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:royal-albert-hall-pipeline", null);
+            template.sendBody("direct:" + route.getRouteId(), null);
         }
 
         verify(notifier).notify(events);
@@ -66,7 +66,7 @@ class RoyalAlbertHallEventRouteBuilderTest {
         context.start();
 
         try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:royal-albert-hall-pipeline", null);
+            template.sendBody("direct:" + route.getRouteId(), null);
         }
 
         verifyNoInteractions(notifier);

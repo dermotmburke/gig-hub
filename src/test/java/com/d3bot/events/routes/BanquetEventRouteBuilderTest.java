@@ -49,7 +49,7 @@ class BanquetEventRouteBuilderTest {
         context.start();
 
         try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:banquet-pipeline", null);
+            template.sendBody("direct:" + route.getRouteId(), null);
         }
 
         ArgumentCaptor<List<Event>> captor = ArgumentCaptor.forClass(List.class);

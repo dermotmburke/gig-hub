@@ -19,6 +19,6 @@ public class RoyalAlbertHallEventRouteBuilder extends EventRouteBuilder {
             TicketmasterEventExtractor extractor,
             List<EventNotifier> notifiers,
             Optional<EventDeduplicationService> deduplication) {
-        super("royal-albert-hall-pipeline", fetcher, extractor, notifiers, deduplication);
+        super(fetcher, extractor, notifiers, deduplication);
     }
 }

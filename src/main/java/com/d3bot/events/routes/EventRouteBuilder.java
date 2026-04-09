@@ -33,16 +33,20 @@ public abstract class EventRouteBuilder extends RouteBuilder {
     private final Optional<EventDeduplicationService> deduplication;
 
     protected EventRouteBuilder(
-            String routeId,
             EventFetcher fetcher,
             EventExtractor extractor,
             List<EventNotifier> notifiers,
             Optional<EventDeduplicationService> deduplication) {
-        this.routeId = routeId;
+        this.routeId = deriveRouteId(getClass());
         this.fetcher = fetcher;
         this.extractor = extractor;
         this.notifiers = notifiers;
         this.deduplication = deduplication;
+    }
+
+    static String deriveRouteId(Class<?> clazz) {
+        String name = clazz.getSimpleName().replace("EventRouteBuilder", "");
+        return name.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase() + "-pipeline";
     }
 
     public String getRouteId() {

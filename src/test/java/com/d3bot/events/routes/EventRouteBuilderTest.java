@@ -16,8 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class EventRouteBuilderTest {
@@ -29,17 +28,24 @@ class EventRouteBuilderTest {
     private static final Event EVENT_A = new Event("Artist A", "Venue A", LocalDateTime.of(2026, 5, 1, 19, 0), "/a");
     private static final Event EVENT_B = new Event("Artist B", "Venue B", LocalDateTime.of(2026, 5, 2, 20, 0), "/b");
 
+    static class TestEventRouteBuilder extends EventRouteBuilder {
+        TestEventRouteBuilder(EventFetcher fetcher, EventExtractor extractor,
+                              List<EventNotifier> notifiers, Optional<EventDeduplicationService> dedup) {
+            super(fetcher, extractor, notifiers, dedup);
+        }
+    }
+
     private void runRoute(List<Event> events, Optional<EventDeduplicationService> deduplication) throws Exception {
         EventFetcher fetcher = () -> "raw";
         EventExtractor extractor = raw -> events;
-        EventRouteBuilder route = new EventRouteBuilder("test-pipeline", fetcher, extractor, List.of(notifier), deduplication) {};
+        TestEventRouteBuilder route = new TestEventRouteBuilder(fetcher, extractor, List.of(notifier), deduplication);
 
         context = new DefaultCamelContext();
         context.addRoutes(route);
         context.start();
 
         try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:test-pipeline", null);
+            template.sendBody("direct:" + route.getRouteId(), null);
         }
     }
 
@@ -90,14 +96,14 @@ class EventRouteBuilderTest {
     @Test
     void runHandlesIOExceptionFromFetchGracefully() throws Exception {
         EventFetcher failingFetcher = () -> { throw new IOException("network error"); };
-        EventRouteBuilder route = new EventRouteBuilder("test-pipeline", failingFetcher, raw -> List.of(), List.of(notifier), Optional.empty()) {};
+        TestEventRouteBuilder route = new TestEventRouteBuilder(failingFetcher, raw -> List.of(), List.of(notifier), Optional.empty());
 
         context = new DefaultCamelContext();
         context.addRoutes(route);
         context.start();
 
         try (ProducerTemplate template = context.createProducerTemplate()) {
-            assertDoesNotThrow(() -> template.sendBody("direct:test-pipeline", null));
+            assertDoesNotThrow(() -> template.sendBody("direct:" + route.getRouteId(), null));
         }
         verifyNoInteractions(notifier);
     }
@@ -105,14 +111,14 @@ class EventRouteBuilderTest {
     @Test
     void runHandlesInterruptedExceptionAndRestoresInterruptFlag() throws Exception {
         EventFetcher interruptedFetcher = () -> { throw new InterruptedException(); };
-        EventRouteBuilder route = new EventRouteBuilder("test-pipeline", interruptedFetcher, raw -> List.of(), List.of(notifier), Optional.empty()) {};
+        TestEventRouteBuilder route = new TestEventRouteBuilder(interruptedFetcher, raw -> List.of(), List.of(notifier), Optional.empty());
 
         context = new DefaultCamelContext();
         context.addRoutes(route);
         context.start();
 
         try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:test-pipeline", null);
+            template.sendBody("direct:" + route.getRouteId(), null);
         }
 
         assertTrue(Thread.currentThread().isInterrupted());
@@ -120,11 +126,9 @@ class EventRouteBuilderTest {
     }
 
     @Test
-    void getRouteIdReturnsConfiguredId() {
-        EventFetcher fetcher = () -> "raw";
-        EventExtractor extractor = raw -> List.of();
-        EventRouteBuilder route = new EventRouteBuilder("my-route", fetcher, extractor, List.of(), Optional.empty()) {};
-
-        org.junit.jupiter.api.Assertions.assertEquals("my-route", route.getRouteId());
+    void routeIdIsDerivedFromClassName() {
+        assertEquals("test-pipeline", new TestEventRouteBuilder(() -> "", raw -> List.of(), List.of(), Optional.empty()).getRouteId());
+        assertEquals("banquet-pipeline", EventRouteBuilder.deriveRouteId(BanquetEventRouteBuilder.class));
+        assertEquals("royal-albert-hall-pipeline", EventRouteBuilder.deriveRouteId(RoyalAlbertHallEventRouteBuilder.class));
     }
 }
