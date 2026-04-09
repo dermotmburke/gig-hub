@@ -1,6 +1,6 @@
 package com.d3bot.events.routes;
 
-import com.d3bot.events.deduplicators.EventDeduplicationService;
+import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.BanquetEventExtractor;
 import com.d3bot.events.fetchers.BanquetEventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
@@ -16,7 +16,7 @@ public class BanquetEventRouteBuilder extends EventRouteBuilder {
             BanquetEventFetcher fetcher,
             BanquetEventExtractor extractor,
             List<EventNotifier> notifiers,
-            Optional<EventDeduplicationService> deduplication) {
-        super(fetcher, extractor, notifiers, deduplication);
+            Optional<EventDeduplicator> deduplicator) {
+        super(fetcher, extractor, notifiers, deduplicator);
     }
 }

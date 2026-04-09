@@ -1,6 +1,6 @@
 package com.d3bot.events.routes;
 
-import com.d3bot.events.deduplicators.EventDeduplicationService;
+import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.EventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
@@ -23,7 +23,7 @@ public abstract class EventRouteBuilder extends RouteBuilder {
     private final String routeId;
     private final EventFetcher fetcher;
     private final EventExtractor extractor;
-    private final EventDeduplicationProcessor deduplicationProcessor;
+    private final EventDeduplicatorProcessor deduplicatorProcessor;
     private final EventNotificationProcessor notificationProcessor;
     private final EventMarkSentProcessor markSentProcessor;
 
@@ -31,13 +31,13 @@ public abstract class EventRouteBuilder extends RouteBuilder {
             EventFetcher fetcher,
             EventExtractor extractor,
             List<EventNotifier> notifiers,
-            Optional<EventDeduplicationService> deduplication) {
+            Optional<EventDeduplicator> deduplicator) {
         this.routeId = deriveRouteId(getClass());
         this.fetcher = fetcher;
         this.extractor = extractor;
-        this.deduplicationProcessor = new EventDeduplicationProcessor(deduplication);
+        this.deduplicatorProcessor = new EventDeduplicatorProcessor(deduplicator);
         this.notificationProcessor = new EventNotificationProcessor(notifiers);
-        this.markSentProcessor = new EventMarkSentProcessor(deduplication);
+        this.markSentProcessor = new EventMarkSentProcessor(deduplicator);
     }
 
     static String deriveRouteId(Class<?> clazz) {
@@ -64,7 +64,7 @@ public abstract class EventRouteBuilder extends RouteBuilder {
                 .routeId(routeId)
                 .bean(fetcher)
                 .bean(extractor)
-                .process(deduplicationProcessor)
+                .process(deduplicatorProcessor)
                 .process(notificationProcessor)
                 .process(markSentProcessor);
     }

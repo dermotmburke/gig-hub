@@ -31,7 +31,7 @@ flowchart TD
     BE --> |List&lt;Event&gt;| Dedup
     TE --> |List&lt;Event&gt;| Dedup
 
-    Dedup{"EventDeduplicationService\n(optional — requires Redis)"}
+    Dedup{"EventDeduplicator\n(optional — requires Redis)"}
     Dedup --> |new events only| Notify
 
     Notify["Notifiers"]
@@ -167,7 +167,7 @@ src/main/java/com/d3bot/events/
 │   ├── LoggingEventNotifier.java           # Always active
 │   └── SlackEventNotifier.java             # Active when slack.webhook-url is set
 ├── deduplicators/
-│   └── EventDeduplicationService.java      # Active when redis.url is set
+│   └── EventDeduplicator.java               # Active when redis.url is set
 └── config/
     ├── HttpClientConfig.java
     └── RedisConfig.java                    # Active when redis.url is set

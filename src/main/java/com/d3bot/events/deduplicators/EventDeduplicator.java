@@ -17,14 +17,14 @@ import java.util.List;
 
 @Service
 @ConditionalOnProperty("redis.url")
-public class EventDeduplicationService {
+public class EventDeduplicator {
 
-    private static final Logger log = LoggerFactory.getLogger(EventDeduplicationService.class);
+    private static final Logger log = LoggerFactory.getLogger(EventDeduplicator.class);
 
     private final JedisPooled jedis;
     private final ObjectMapper objectMapper;
 
-    public EventDeduplicationService(JedisPooled jedis, ObjectMapper objectMapper) {
+    public EventDeduplicator(JedisPooled jedis, ObjectMapper objectMapper) {
         this.jedis = jedis;
         this.objectMapper = objectMapper;
     }

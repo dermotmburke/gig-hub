@@ -21,13 +21,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class EventDeduplicationServiceTest {
+class EventDeduplicatorTest {
 
     private final JedisPooled jedis = mock(JedisPooled.class);
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    private final EventDeduplicationService service = new EventDeduplicationService(jedis, objectMapper);
+    private final EventDeduplicator service = new EventDeduplicator(jedis, objectMapper);
 
     private final Event eventA = new Event("Artist A", "Venue A", LocalDateTime.of(2026, 4, 7, 19, 0), "/a");
     private final Event eventB = new Event("Artist B", "Venue B", LocalDateTime.of(2026, 4, 8, 20, 0), "/b");

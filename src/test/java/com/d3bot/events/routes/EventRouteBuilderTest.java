@@ -1,6 +1,6 @@
 package com.d3bot.events.routes;
 
-import com.d3bot.events.deduplicators.EventDeduplicationService;
+import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.EventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
 import com.d3bot.events.models.Event;
@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 class EventRouteBuilderTest {
 
     private final EventNotifier notifier = mock(EventNotifier.class);
-    private final EventDeduplicationService dedup = mock(EventDeduplicationService.class);
+    private final EventDeduplicator dedup = mock(EventDeduplicator.class);
     private CamelContext context;
 
     private static final Event EVENT_A = new Event("Artist A", "Venue A", LocalDateTime.of(2026, 5, 1, 19, 0), "/a");
@@ -30,15 +30,15 @@ class EventRouteBuilderTest {
 
     static class TestEventRouteBuilder extends EventRouteBuilder {
         TestEventRouteBuilder(EventFetcher fetcher, EventExtractor extractor,
-                              List<EventNotifier> notifiers, Optional<EventDeduplicationService> dedup) {
+                              List<EventNotifier> notifiers, Optional<EventDeduplicator> dedup) {
             super(fetcher, extractor, notifiers, dedup);
         }
     }
 
-    private void runRoute(List<Event> events, Optional<EventDeduplicationService> deduplication) throws Exception {
+    private void runRoute(List<Event> events, Optional<EventDeduplicator> deduplicator) throws Exception {
         EventFetcher fetcher = () -> "raw";
         EventExtractor extractor = raw -> events;
-        TestEventRouteBuilder route = new TestEventRouteBuilder(fetcher, extractor, List.of(notifier), deduplication);
+        TestEventRouteBuilder route = new TestEventRouteBuilder(fetcher, extractor, List.of(notifier), deduplicator);
 
         context = new DefaultCamelContext();
         context.addRoutes(route);
