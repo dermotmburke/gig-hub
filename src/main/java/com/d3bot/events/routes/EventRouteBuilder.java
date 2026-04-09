@@ -3,13 +3,9 @@ package com.d3bot.events.routes;
 import com.d3bot.events.deduplicators.EventDeduplicationService;
 import com.d3bot.events.extractors.EventExtractor;
 import com.d3bot.events.fetchers.EventFetcher;
-import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
-import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,8 +19,6 @@ import java.util.Optional;
  * the {@link com.d3bot.events.runners.EventPipelineRunner}.
  */
 public abstract class EventRouteBuilder extends RouteBuilder {
-
-    private static final Logger log = LoggerFactory.getLogger(EventRouteBuilder.class);
 
     private final String routeId;
     private final EventFetcher fetcher;
@@ -68,33 +62,8 @@ public abstract class EventRouteBuilder extends RouteBuilder {
                 .routeId(routeId)
                 .bean(fetcher)
                 .bean(extractor)
-                .process(this::deduplicate)
-                .process(this::notifyAll)
-                .process(this::markSent);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void deduplicate(Exchange exchange) {
-        List<Event> events = exchange.getMessage().getBody(List.class);
-        log.info("{} found {} events", routeId, events.size());
-
-        List<Event> newEvents = deduplication.map(d -> d.filter(events)).orElse(events);
-        if (newEvents.size() < events.size()) {
-            log.info("Deduplicated: {} new, {} already sent",
-                    newEvents.size(), events.size() - newEvents.size());
-        }
-        exchange.getMessage().setBody(newEvents);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void notifyAll(Exchange exchange) {
-        List<Event> events = exchange.getMessage().getBody(List.class);
-        notifiers.forEach(n -> n.notify(events));
-    }
-
-    @SuppressWarnings("unchecked")
-    private void markSent(Exchange exchange) {
-        List<Event> events = exchange.getMessage().getBody(List.class);
-        deduplication.ifPresent(d -> d.markSent(events));
+                .process(new EventDeduplicationProcessor(deduplication))
+                .process(new EventNotificationProcessor(notifiers))
+                .process(new EventMarkSentProcessor(deduplication));
     }
 }
