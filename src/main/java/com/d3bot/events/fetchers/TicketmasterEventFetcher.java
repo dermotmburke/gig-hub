@@ -5,26 +5,10 @@ import com.d3bot.events.utilities.UrlFetcher;
 import java.io.IOException;
 
 /**
- * Base class for Ticketmaster API fetchers. Subclasses supply the venue ID and API key
- * via their constructor.
- *
- * <p>To add a new Ticketmaster venue fetcher:
- *
- * <pre>{@code
- * @Component
- * @ConditionalOnProperty({"fetchers.ticketmaster.api-key", "fetchers.ticketmaster.venues.my-venue.id"})
- * public class MyVenueEventFetcher extends TicketmasterEventFetcher {
- *
- *     public MyVenueEventFetcher(
- *             UrlFetcher urlFetcher,
- *             @Value("${fetchers.ticketmaster.api-key}") String apiKey,
- *             @Value("${fetchers.ticketmaster.venues.my-venue.id}") String venueId) {
- *         super(urlFetcher, venueId, apiKey);
- *     }
- * }
- * }</pre>
+ * Ticketmaster Discovery API fetcher. Constructed with a venue ID and API key; add new venues
+ * via {@code fetchers.ticketmaster.venues.<name>.id} configuration — no new class required.
  */
-public abstract class TicketmasterEventFetcher implements EventFetcher {
+public class TicketmasterEventFetcher implements EventFetcher {
 
     static final String BASE_URL = "https://app.ticketmaster.com/discovery/v2/events.json";
 
@@ -32,7 +16,7 @@ public abstract class TicketmasterEventFetcher implements EventFetcher {
     private final String venueId;
     private final String apiKey;
 
-    protected TicketmasterEventFetcher(UrlFetcher urlFetcher, String venueId, String apiKey) {
+    public TicketmasterEventFetcher(UrlFetcher urlFetcher, String venueId, String apiKey) {
         this.urlFetcher = urlFetcher;
         this.venueId = venueId;
         this.apiKey = apiKey;

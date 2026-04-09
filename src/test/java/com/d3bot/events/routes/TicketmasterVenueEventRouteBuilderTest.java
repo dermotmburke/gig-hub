@@ -1,7 +1,7 @@
 package com.d3bot.events.routes;
 
 import com.d3bot.events.extractors.TicketmasterEventExtractor;
-import com.d3bot.events.fetchers.RoyalAlbertHallEventFetcher;
+import com.d3bot.events.fetchers.TicketmasterEventFetcher;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
 import org.apache.camel.CamelContext;
@@ -14,12 +14,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-class RoyalAlbertHallEventRouteBuilderTest {
+class TicketmasterVenueEventRouteBuilderTest {
 
-    private final RoyalAlbertHallEventFetcher fetcher = mock(RoyalAlbertHallEventFetcher.class);
+    private final TicketmasterEventFetcher fetcher = mock(TicketmasterEventFetcher.class);
     private final TicketmasterEventExtractor extractor = mock(TicketmasterEventExtractor.class);
     private final EventNotifier notifier = mock(EventNotifier.class);
     private CamelContext context;
@@ -32,16 +33,23 @@ class RoyalAlbertHallEventRouteBuilderTest {
     }
 
     @Test
+    void routeIdIsVenueNamePlusPipeline() {
+        TicketmasterVenueEventRouteBuilder route = new TicketmasterVenueEventRouteBuilder(
+                "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty());
+        assertEquals("brixton-academy-pipeline", route.getRouteId());
+    }
+
+    @Test
     void runFetchesFromTicketmasterAndNotifies() throws Exception {
         String json = "{\"_embedded\":{\"events\":[]}}";
         List<Event> events = List.of(
-                new Event("Nick Cave", "Royal Albert Hall", LocalDateTime.of(2026, 9, 1, 19, 30), "https://example.com")
+                new Event("Nick Cave", "Brixton Academy", LocalDateTime.of(2026, 9, 1, 19, 30), "https://example.com")
         );
         when(fetcher.fetch()).thenReturn(json);
         when(extractor.extract(json)).thenReturn(events);
 
-        RoyalAlbertHallEventRouteBuilder route = new RoyalAlbertHallEventRouteBuilder(
-                fetcher, extractor, List.of(notifier), Optional.empty());
+        TicketmasterVenueEventRouteBuilder route = new TicketmasterVenueEventRouteBuilder(
+                "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty());
 
         context = new DefaultCamelContext();
         context.addRoutes(route);
@@ -58,8 +66,8 @@ class RoyalAlbertHallEventRouteBuilderTest {
     void runHandlesInterruptedExceptionFromFetch() throws Exception {
         when(fetcher.fetch()).thenThrow(new InterruptedException("interrupted"));
 
-        RoyalAlbertHallEventRouteBuilder route = new RoyalAlbertHallEventRouteBuilder(
-                fetcher, extractor, List.of(notifier), Optional.empty());
+        TicketmasterVenueEventRouteBuilder route = new TicketmasterVenueEventRouteBuilder(
+                "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty());
 
         context = new DefaultCamelContext();
         context.addRoutes(route);
