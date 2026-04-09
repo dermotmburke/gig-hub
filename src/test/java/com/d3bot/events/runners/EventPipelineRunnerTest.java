@@ -1,6 +1,7 @@
 package com.d3bot.events.runners;
 
-import com.d3bot.events.pipelines.EventPipeline;
+import com.d3bot.events.routes.EventRouteBuilder;
+import org.apache.camel.ProducerTemplate;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -10,14 +11,17 @@ import static org.mockito.Mockito.*;
 class EventPipelineRunnerTest {
 
     @Test
-    void runCallsRunOnEachPipeline() {
-        EventPipeline pipeline1 = mock(EventPipeline.class);
-        EventPipeline pipeline2 = mock(EventPipeline.class);
-        EventPipelineRunner job = new EventPipelineRunner(List.of(pipeline1, pipeline2));
+    void runTriggersAllRoutes() {
+        ProducerTemplate template = mock(ProducerTemplate.class);
+        EventRouteBuilder route1 = mock(EventRouteBuilder.class);
+        EventRouteBuilder route2 = mock(EventRouteBuilder.class);
+        when(route1.getRouteId()).thenReturn("route-1");
+        when(route2.getRouteId()).thenReturn("route-2");
 
-        job.run();
+        EventPipelineRunner runner = new EventPipelineRunner(template, List.of(route1, route2));
+        runner.run();
 
-        verify(pipeline1).run();
-        verify(pipeline2).run();
+        verify(template).sendBody("direct:route-1", null);
+        verify(template).sendBody("direct:route-2", null);
     }
 }

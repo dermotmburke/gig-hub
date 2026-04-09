@@ -1,6 +1,7 @@
 package com.d3bot.events.runners;
 
-import com.d3bot.events.pipelines.EventPipeline;
+import com.d3bot.events.routes.EventRouteBuilder;
+import org.apache.camel.ProducerTemplate;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -9,14 +10,16 @@ import java.util.List;
 @Component
 public class EventPipelineRunner implements CommandLineRunner {
 
-    private final List<EventPipeline> pipelines;
+    private final ProducerTemplate producerTemplate;
+    private final List<EventRouteBuilder> routes;
 
-    public EventPipelineRunner(List<EventPipeline> pipelines) {
-        this.pipelines = pipelines;
+    public EventPipelineRunner(ProducerTemplate producerTemplate, List<EventRouteBuilder> routes) {
+        this.producerTemplate = producerTemplate;
+        this.routes = routes;
     }
 
     @Override
     public void run(String... args) {
-        pipelines.forEach(EventPipeline::run);
+        routes.forEach(route -> producerTemplate.sendBody("direct:" + route.getRouteId(), null));
     }
 }
