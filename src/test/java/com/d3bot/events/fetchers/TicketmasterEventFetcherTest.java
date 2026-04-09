@@ -13,7 +13,7 @@ class TicketmasterEventFetcherTest {
 
     private final UrlFetcher urlFetcher = mock(UrlFetcher.class);
     private final TicketmasterEventFetcher fetcher =
-            new TicketmasterEventFetcher(urlFetcher, "KovZpZAEdntA", "test-api-key") {};
+            new TicketmasterEventFetcher(urlFetcher, "KovZpZAEdntA", "test-api-key");
 
     @Test
     void fetchDelegatesToUrlFetcherWithConstructedUrl() throws Exception {

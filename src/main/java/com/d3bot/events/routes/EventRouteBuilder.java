@@ -46,6 +46,20 @@ public abstract class EventRouteBuilder extends RouteBuilder {
         this.markSentProcessor = new EventMarkSentProcessor(deduplicator);
     }
 
+    protected EventRouteBuilder(
+            String routeId,
+            EventFetcher fetcher,
+            EventExtractor extractor,
+            List<EventNotifier> notifiers,
+            Optional<EventDeduplicator> deduplicator) {
+        this.routeId = routeId;
+        this.fetchProcessor = new EventFetchProcessor(fetcher);
+        this.extractorProcessor = new EventExtractorProcessor(extractor);
+        this.deduplicatorProcessor = new EventDeduplicatorProcessor(deduplicator);
+        this.notificationProcessor = new EventNotificationProcessor(notifiers);
+        this.markSentProcessor = new EventMarkSentProcessor(deduplicator);
+    }
+
     public String getRouteId() {
         return routeId;
     }
