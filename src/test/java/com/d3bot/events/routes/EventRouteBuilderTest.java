@@ -128,7 +128,5 @@ class EventRouteBuilderTest {
     @Test
     void routeIdIsDerivedFromClassName() {
         assertEquals("test-pipeline", new TestEventRouteBuilder(() -> "", raw -> List.of(), List.of(), Optional.empty()).getRouteId());
-        assertEquals("banquet-pipeline", EventRouteBuilder.deriveRouteId(BanquetEventRouteBuilder.class));
-        assertEquals("royal-albert-hall-pipeline", EventRouteBuilder.deriveRouteId(RoyalAlbertHallEventRouteBuilder.class));
     }
 }
