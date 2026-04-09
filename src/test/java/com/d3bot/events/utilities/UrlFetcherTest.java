@@ -1,6 +1,5 @@
-package com.d3bot.events.fetchers;
+package com.d3bot.events.utilities;
 
-import com.d3bot.events.utilities.UrlFetcher;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

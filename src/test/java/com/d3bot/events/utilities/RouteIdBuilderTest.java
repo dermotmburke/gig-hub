@@ -1,6 +1,7 @@
-package com.d3bot.events.routes;
+package com.d3bot.events.utilities;
 
-import com.d3bot.events.utilities.RouteIdBuilder;
+import com.d3bot.events.routes.BanquetEventRouteBuilder;
+import com.d3bot.events.routes.RoyalAlbertHallEventRouteBuilder;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
