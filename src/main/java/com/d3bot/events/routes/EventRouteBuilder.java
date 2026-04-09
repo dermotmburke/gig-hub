@@ -53,8 +53,8 @@ public abstract class EventRouteBuilder extends RouteBuilder {
     public void configure() {
         onException(InterruptedException.class)
                 .handled(true)
-                .process(exchange -> Thread.currentThread().interrupt())
-                .log(LoggingLevel.ERROR, "Pipeline interrupted for " + routeId);
+                .log(LoggingLevel.ERROR, "Pipeline interrupted for " + routeId)
+                .process(exchange -> Thread.currentThread().interrupt());
 
         onException(Exception.class)
                 .handled(true)
