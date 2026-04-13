@@ -12,6 +12,7 @@ import java.util.List;
 
 import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.verify;
 class SlackEventNotifierTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test");
+    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "");
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -85,5 +86,37 @@ class SlackEventNotifierTest {
         notifier.notify(List.of());
 
         verify(httpClient, org.mockito.Mockito.never()).send(any(), any());
+    }
+
+    @Test
+    void buildPayloadDoesNotContainSaveLinkWhenGigSaverUrlIsBlank() {
+        var event = new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com");
+        String payload = notifier.buildPayload(List.of(event));
+
+        assertFalse(payload.contains("/save?"), "Save link should be absent when gigSaverUrl is blank");
+    }
+
+    @Test
+    void buildPayloadContainsSaveLinkWhenGigSaverUrlIsSet() {
+        var notifierWithSaver = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "http://localhost:3000");
+        var event = new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com");
+
+        String payload = notifierWithSaver.buildPayload(List.of(event));
+
+        assertTrue(payload.contains("http://localhost:3000/save?"), "Save link should be present");
+        assertTrue(payload.contains("artist=The+Cure"), "Artist should be URL-encoded");
+        assertTrue(payload.contains("location=O2+Arena"), "Location should be URL-encoded");
+        assertTrue(payload.contains("date=2026-05-10T19:00:00"), "Date should be ISO format");
+    }
+
+    @Test
+    void buildPayloadUrlEncodesSpecialCharsInTicketUrl() {
+        var notifierWithSaver = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "http://localhost:3000");
+        var event = new Event("Band", "Venue", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com/event?id=123&ref=slack");
+
+        String payload = notifierWithSaver.buildPayload(List.of(event));
+
+        assertTrue(payload.contains("url=https%3A%2F%2Fexample.com%2Fevent%3Fid%3D123%26ref%3Dslack"),
+                "Ticket URL with & and ? should be fully encoded");
     }
 }
