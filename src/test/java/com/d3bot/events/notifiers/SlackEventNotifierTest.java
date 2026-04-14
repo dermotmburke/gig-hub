@@ -1,6 +1,7 @@
 package com.d3bot.events.notifiers;
 
 import com.d3bot.events.models.Event;
+import com.d3bot.events.utilities.GigHubCalendarUrlBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import java.io.IOException;
 
@@ -23,7 +25,7 @@ import static org.mockito.Mockito.verify;
 class SlackEventNotifierTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "");
+    private final SlackEventNotifier notifier = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", Optional.empty());
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -89,16 +91,17 @@ class SlackEventNotifierTest {
     }
 
     @Test
-    void buildPayloadDoesNotContainSaveLinkWhenGigSaverUrlIsBlank() {
+    void buildPayloadDoesNotContainSaveLinkWhenBuilderAbsent() {
         var event = new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com");
         String payload = notifier.buildPayload(List.of(event));
 
-        assertFalse(payload.contains("/save?"), "Save link should be absent when gigSaverUrl is blank");
+        assertFalse(payload.contains("/save?"), "Save link should be absent when builder is not present");
     }
 
     @Test
-    void buildPayloadContainsSaveLinkWhenGigSaverUrlIsSet() {
-        var notifierWithSaver = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "http://localhost:3000");
+    void buildPayloadContainsSaveLinkWhenBuilderPresent() {
+        var notifierWithSaver = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test",
+                Optional.of(new GigHubCalendarUrlBuilder("http://localhost:3000")));
         var event = new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com");
 
         String payload = notifierWithSaver.buildPayload(List.of(event));
@@ -111,7 +114,8 @@ class SlackEventNotifierTest {
 
     @Test
     void buildPayloadUrlEncodesSpecialCharsInTicketUrl() {
-        var notifierWithSaver = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test", "http://localhost:3000");
+        var notifierWithSaver = new SlackEventNotifier(httpClient, "https://hooks.slack.com/test",
+                Optional.of(new GigHubCalendarUrlBuilder("http://localhost:3000")));
         var event = new Event("Band", "Venue", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com/event?id=123&ref=slack");
 
         String payload = notifierWithSaver.buildPayload(List.of(event));

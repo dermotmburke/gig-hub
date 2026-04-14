@@ -10,16 +10,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import com.d3bot.events.utilities.GigHubCalendarUrlBuilder;
+
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -32,16 +33,16 @@ public class SlackEventNotifier implements EventNotifier {
 
     private final HttpClient httpClient;
     private final String webhookUrl;
-    private final String gigSaverUrl;
+    private final Optional<GigHubCalendarUrlBuilder> gigHubCalendarUrlBuilder;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SlackEventNotifier(
             HttpClient httpClient,
             @Value("${slack.webhook-url}") String webhookUrl,
-            @Value("${gig-saver.url:}") String gigSaverUrl) {
+            Optional<GigHubCalendarUrlBuilder> gigHubCalendarUrlBuilder) {
         this.httpClient = httpClient;
         this.webhookUrl = webhookUrl;
-        this.gigSaverUrl = gigSaverUrl;
+        this.gigHubCalendarUrlBuilder = gigHubCalendarUrlBuilder;
     }
 
     @Override
@@ -73,15 +74,10 @@ public class SlackEventNotifier implements EventNotifier {
                     String line = e.url().startsWith("http")
                             ? String.format("• *<%s|%s>* — %s @ %s", e.url(), e.artist(), e.dateTime().format(DATE_FORMATTER), e.location())
                             : String.format("• *%s* — %s @ %s", e.artist(), e.dateTime().format(DATE_FORMATTER), e.location());
-                    if (gigSaverUrl != null && !gigSaverUrl.isBlank()) {
-                        String saveLink = gigSaverUrl + "/save"
-                                + "?artist=" + URLEncoder.encode(e.artist(), StandardCharsets.UTF_8)
-                                + "&location=" + URLEncoder.encode(e.location(), StandardCharsets.UTF_8)
-                                + "&date=" + e.dateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                                + "&url=" + URLEncoder.encode(e.url(), StandardCharsets.UTF_8);
-                        line = line + " | <" + saveLink + "|\uD83D\uDCBE Save>";
-                    }
-                    return line;
+                    String saveFragment = gigHubCalendarUrlBuilder
+                            .map(builder -> " | <" + builder.build(e) + "|\uD83D\uDCBE Save>")
+                            .orElse("");
+                    return line + saveFragment;
                 })
                 .collect(Collectors.joining("\n"));
         String text = String.format("*%d upcoming events*\n%s", events.size(), eventList);
