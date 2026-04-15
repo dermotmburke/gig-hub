@@ -75,7 +75,7 @@ public class SlackEventNotifier implements EventNotifier {
                             ? String.format("• *<%s|%s>* — %s @ %s", e.url(), e.artist(), e.dateTime().format(DATE_FORMATTER), e.location())
                             : String.format("• *%s* — %s @ %s", e.artist(), e.dateTime().format(DATE_FORMATTER), e.location());
                     String saveFragment = gigHubCalendarUrlBuilder
-                            .map(builder -> " | <" + builder.build(e) + "|\uD83D\uDCBE Save>")
+                            .map(builder -> " | <" + builder.build(e) + "|\uD83D\uDDAB Save>")
                             .orElse("");
                     return line + saveFragment;
                 })
