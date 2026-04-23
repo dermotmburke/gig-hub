@@ -1,0 +1,33 @@
+runner:
+  interval-ms: 10000
+
+fetchers:
+  banquet:
+    url: https://www.banquetrecords.com/events?w=1000
+  ticketmaster:
+    api-key: ""
+    venues:
+      royal-albert-hall:
+        id: KovZ9177Arf
+      brixton-academy:
+        id: KovZ91777af
+      eventim-apollo:
+        id: KovZpZAtadaA
+      royal-festival-hall:
+        id: KovZpZAnFvlA
+
+slack:
+  webhook-url: ""
+
+redis:
+  url: ""
+
+otel:
+  service:
+    name: gig-hub
+  exporter:
+    otlp:
+      endpoint: http://localhost:4318
+
+gig-hub-calendar:
+  base-url: ""
