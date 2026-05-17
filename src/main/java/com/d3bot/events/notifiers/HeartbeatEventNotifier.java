@@ -15,32 +15,36 @@ import java.net.http.HttpResponse;
 import java.util.List;
 
 @Component
-@ConditionalOnProperty("gatus.heartbeat-url")
-public class GatusEventNotifier implements EventNotifier {
+@ConditionalOnProperty("heartbeat.urls")
+public class HeartbeatEventNotifier implements EventNotifier {
 
-    private static final Logger log = LoggerFactory.getLogger(GatusEventNotifier.class);
+    private static final Logger log = LoggerFactory.getLogger(HeartbeatEventNotifier.class);
 
     private final HttpClient httpClient;
-    private final String heartbeatUrl;
+    private final List<String> urls;
 
-    public GatusEventNotifier(
+    public HeartbeatEventNotifier(
             HttpClient httpClient,
-            @Value("${gatus.heartbeat-url}") String heartbeatUrl) {
+            @Value("${heartbeat.urls}") List<String> urls) {
         this.httpClient = httpClient;
-        this.heartbeatUrl = heartbeatUrl;
+        this.urls = urls;
     }
 
     @Override
     public void notify(List<Event> events) {
+        urls.forEach(this::ping);
+    }
+
+    private void ping(String url) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(heartbeatUrl))
+                    .uri(URI.create(url))
                     .GET()
                     .build();
             httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-            log.info("Pinged Gatus heartbeat");
+            log.info("Pinged heartbeat: {}", url);
         } catch (IOException | InterruptedException e) {
-            log.error("Failed to ping Gatus heartbeat: {}", e.getMessage());
+            log.error("Failed to ping heartbeat {}: {}", url, e.getMessage());
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }

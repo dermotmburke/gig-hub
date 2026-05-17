@@ -14,38 +14,50 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-class GatusEventNotifierTest {
+class HeartbeatEventNotifierTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final GatusEventNotifier notifier = new GatusEventNotifier(httpClient, "https://status.example.com/api/v1/endpoints/gig-hub/heartbeat");
+    private final HeartbeatEventNotifier notifier = new HeartbeatEventNotifier(
+            httpClient,
+            List.of("https://monitor-a.example.com/ping", "https://monitor-b.example.com/ping"));
 
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() throws Exception {
         HttpResponse<Void> mockResponse = mock(HttpResponse.class);
-        doReturn(200).when(mockResponse).statusCode();
         doReturn(mockResponse).when(httpClient).send(any(HttpRequest.class), any());
     }
 
     @Test
-    void notifyPingsHeartbeatWithEvents() throws Exception {
+    void notifyPingsAllConfiguredUrls() throws Exception {
+        notifier.notify(List.of());
+
+        verify(httpClient, times(2)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    void notifyPingsEvenWithNoEvents() throws Exception {
+        notifier.notify(List.of());
+
+        verify(httpClient, atLeastOnce()).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    void notifyPingsEvenWithEvents() throws Exception {
         notifier.notify(List.of(new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com")));
 
-        verify(httpClient).send(any(HttpRequest.class), any());
+        verify(httpClient, times(2)).send(any(HttpRequest.class), any());
     }
 
     @Test
-    void notifyPingsHeartbeatEvenWithNoEvents() throws Exception {
-        notifier.notify(List.of());
-
-        verify(httpClient).send(any(HttpRequest.class), any());
-    }
-
-    @Test
-    void notifyHandlesIOExceptionGracefully() throws Exception {
-        doThrow(new IOException("connection refused")).when(httpClient).send(any(), any());
+    void notifyContinuesToPingRemainingUrlsAfterFailure() throws Exception {
+        doThrow(new IOException("connection refused"))
+                .doReturn(null)
+                .when(httpClient).send(any(), any());
 
         notifier.notify(List.of());
+
+        verify(httpClient, times(2)).send(any(HttpRequest.class), any());
     }
 
     @Test
