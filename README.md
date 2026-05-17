@@ -1,25 +1,23 @@
 # gig-hub
 
-A Spring Boot application that scrapes upcoming music events and delivers them to Slack. Events are deduplicated using Redis so each event is only notified once.
+A Spring Boot CLI that scrapes upcoming music events and delivers them to Slack. Designed to run as a Kubernetes Job or cron job — it runs all pipelines once and exits. Events are deduplicated using Redis so each event is only notified once.
 
 ## How it works
 
-On a configurable schedule (default: hourly), gig-hub runs each configured event pipeline using [Apache Camel](https://camel.apache.org/):
+On each run, gig-hub executes every configured event pipeline in sequence:
 
-1. A Camel timer triggers the scheduler, which fires each venue's pipeline route
-2. Each pipeline route: fetches → extracts → deduplicates → notifies → marks sent
-3. Deduplication uses Redis keyed on a checksum of venue + date/time (skipped if Redis is not configured)
-4. New events are posted to a Slack channel via an incoming webhook
-5. Sent events are marked in Redis with a TTL set to expire the day after the event
-
-Distributed traces are exported via OpenTelemetry (OTLP/HTTP) — each pipeline run produces a span tree visible in Jaeger or Grafana Tempo.
+1. **Fetch** — pull raw content from the venue source (HTML scrape or Ticketmaster API)
+2. **Extract** — parse raw content into a list of `Event` records
+3. **Deduplicate** — filter out events already seen in Redis (skipped if Redis is not configured)
+4. **Notify** — fan out to all active notifiers (Slack, heartbeat URLs, stdout)
+5. **Mark sent** — record new events in Redis with a TTL
 
 ```mermaid
 flowchart TD
-    Scheduler["EventSchedulerRoute\n(Camel timer)"]
+    Runner["EventPipelineRunner\n(CommandLineRunner)"]
 
-    Scheduler --> BR["BanquetEventRouteBuilder\n(direct:banquet-pipeline)"]
-    Scheduler --> TM["TicketmasterVenueEventRouteBuilder ×N\n(direct:&lt;venue&gt;-pipeline)"]
+    Runner --> BR["BanquetEventPipeline"]
+    Runner --> TM["TicketmasterVenueEventPipeline ×N"]
 
     BR --> BF["BanquetEventFetcher\n(HTTP / HTML)"]
     TM --> RF["TicketmasterEventFetcher\n(Ticketmaster API)"]
@@ -30,15 +28,17 @@ flowchart TD
     BE --> |List&lt;Event&gt;| Dedup
     TE --> |List&lt;Event&gt;| Dedup
 
-    Dedup{"EventDeduplicatorProcessor\n(optional — requires Redis)"}
+    Dedup{"EventDeduplicator\n(optional — requires Redis)"}
     Dedup --> |new events only| Notify
 
-    Notify["EventNotificationProcessor"]
+    Notify["Notifiers"]
     Notify --> Log["LoggingEventNotifier\n(always active)"]
     Notify --> Slack["SlackEventNotifier\n(requires slack.webhook-url)"]
+    Notify --> Heartbeat["HeartbeatEventNotifier\n(requires heartbeat.urls[0])"]
 
     Dedup --> |markSent| Redis[("Redis")]
     Slack --> |POST| SlackAPI["Slack webhook"]
+    Heartbeat --> |GET| HeartbeatURLs["Heartbeat URL(s)"]
 ```
 
 ## Supported venues
@@ -72,11 +72,19 @@ All configuration is via environment variables or `application.properties`.
 | `fetchers.ticketmaster.api-key` | `FETCHERS_TICKETMASTER_API_KEY` | *(unset)* | Ticketmaster Discovery API consumer key — required to enable any Ticketmaster venue |
 | `fetchers.ticketmaster.venues.<name>.id` | `FETCHERS_TICKETMASTER_VENUES_<NAME>_ID` | *(unset)* | Ticketmaster venue ID for a named venue — one entry per venue, kebab-case name |
 
-### Scheduling
+### Heartbeat monitoring
 
-| Property | Env var | Default | Description |
-|---|---|---|---|
-| `runner.interval-ms` | `RUNNER_INTERVAL_MS` | `3600000` (1 hour) | How often to run all pipelines, in milliseconds |
+gig-hub can ping one or more URLs on each successful run, compatible with [Gatus](https://github.com/TwiN/gatus), Dead Man's Snitch, or any HTTP heartbeat endpoint:
+
+| Property | Description |
+|---|---|
+| `heartbeat.urls[0]` | First heartbeat URL to ping |
+| `heartbeat.urls[1]` | Second heartbeat URL (add as many as needed) |
+
+```properties
+heartbeat.urls[0]=https://status.example.com/api/v1/endpoints/gig-hub/heartbeat
+heartbeat.urls[1]=https://nosnch.in/abc123
+```
 
 ### OpenTelemetry
 
@@ -84,8 +92,6 @@ All configuration is via environment variables or `application.properties`.
 |---|---|---|---|
 | `otel.service.name` | `OTEL_SERVICE_NAME` | `gig-hub` | Service name reported in traces |
 | `otel.exporter.otlp.endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP collector endpoint (Jaeger, Grafana Tempo, etc.) |
-
-Traces are exported via OTLP HTTP/protobuf to `<endpoint>/v1/traces`. To disable tracing, set `camel.opentelemetry.enabled=false`.
 
 ### Slack
 
@@ -109,7 +115,7 @@ No code changes needed. Add one property to `application.properties` (or the equ
 fetchers.ticketmaster.venues.my-venue.id=KovZ...
 ```
 
-The venue name (e.g. `my-venue`) must be kebab-case — it becomes the Camel route ID (`my-venue-pipeline`) and the Redis deduplication key prefix. To find the Ticketmaster venue ID:
+The venue name (e.g. `my-venue`) must be kebab-case. To find the Ticketmaster venue ID:
 
 ```bash
 curl "https://app.ticketmaster.com/discovery/v2/venues.json?keyword=My+Venue&countryCode=GB&apikey=YOUR_API_KEY"
@@ -147,6 +153,38 @@ docker run \
   ghcr.io/dermotmburke/gig-hub:latest
 ```
 
+## Running as a Kubernetes Job
+
+gig-hub runs all pipelines once and exits with code 0 on success, making it suited for a `CronJob`:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gig-hub
+spec:
+  schedule: "0 * * * *"   # hourly
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: gig-hub
+              image: ghcr.io/dermotmburke/gig-hub:latest
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: gig-hub
+                      key: slack-webhook-url
+                - name: REDIS_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: gig-hub
+                      key: redis-url
+          restartPolicy: OnFailure
+```
+
 ## Tests
 
 ```bash
@@ -173,20 +211,15 @@ The Docker image is published to `ghcr.io/dermotmburke/gig-hub` tagged with `lat
 
 ```
 src/main/java/com/d3bot/events/
-├── Main.java                               # @SpringBootApplication + @CamelOpenTelemetry
+├── Main.java                               # Entry point — System.exit(SpringApplication.exit(...))
 ├── models/
 │   └── Event.java                          # Immutable record (artist, location, dateTime, url)
-├── routes/
-│   ├── EventRouteBuilder.java              # Abstract Camel route: fetch→extract→dedup→notify→markSent
-│   ├── EventSchedulerRoute.java            # Camel timer — fires each pipeline route on schedule
-│   ├── BanquetEventRouteBuilder.java       # Always active
-│   ├── TicketmasterVenueEventRouteBuilder.java  # One instance per configured Ticketmaster venue
-│   └── processors/
-│       ├── EventFetchProcessor.java        # Calls EventFetcher, handles InterruptedException
-│       ├── EventExtractorProcessor.java    # Calls EventExtractor, sets List<Event> body
-│       ├── EventDeduplicatorProcessor.java # Filters already-seen events via Redis
-│       ├── EventNotificationProcessor.java # Fans out to all EventNotifiers
-│       └── EventMarkSentProcessor.java     # Marks new events as sent in Redis
+├── pipelines/
+│   ├── EventPipeline.java                  # Abstract base: fetch→extract→dedup→notify→markSent
+│   ├── BanquetEventPipeline.java           # Always active
+│   └── TicketmasterVenueEventPipeline.java # One instance per configured Ticketmaster venue
+├── runners/
+│   └── EventPipelineRunner.java            # CommandLineRunner — runs all pipelines on startup
 ├── fetchers/
 │   ├── EventFetcher.java                   # Interface: fetch() → String
 │   ├── BanquetEventFetcher.java            # Delegates to UrlFetcher
@@ -198,16 +231,17 @@ src/main/java/com/d3bot/events/
 ├── notifiers/
 │   ├── EventNotifier.java                  # Interface
 │   ├── LoggingEventNotifier.java           # Always active
-│   └── SlackEventNotifier.java             # Active when slack.webhook-url is set
+│   ├── SlackEventNotifier.java             # Active when slack.webhook-url is set
+│   └── HeartbeatEventNotifier.java         # Active when heartbeat.urls[0] is set
 ├── deduplicators/
 │   └── EventDeduplicator.java              # Active when redis.url is set
 ├── utilities/
 │   ├── UrlFetcher.java                     # Shared HTTP GET via Java HttpClient
-│   └── RouteIdBuilder.java                 # Derives kebab-case route IDs from class names
+│   └── RouteIdBuilder.java                 # Derives kebab-case pipeline IDs from class names
 └── config/
     ├── HttpClientConfig.java               # Java HttpClient bean
     ├── RedisConfig.java                    # Active when redis.url is set
     ├── OpenTelemetryConfig.java            # OTLP/HTTP exporter — sends traces to Jaeger/Tempo
-    ├── TicketmasterRouteBuilderFactory.java # Creates TicketmasterVenueEventRouteBuilder instances
-    └── TicketmasterVenueBeanRegistrar.java  # Registers one route builder bean per configured venue
+    ├── TicketmasterPipelineFactory.java    # Creates TicketmasterVenueEventPipeline instances
+    └── TicketmasterVenueBeanRegistrar.java # Registers one pipeline bean per configured venue
 ```
