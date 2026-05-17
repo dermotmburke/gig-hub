@@ -55,57 +55,69 @@ Any number of additional Ticketmaster venues can be added with no code changes �
 
 ## Configuration
 
-All configuration is via environment variables or `application.properties`.
+All configuration is via environment variables or `application.properties`. Everything is optional — the app runs with no configuration, logging events to stdout only.
 
-### Core
+### Notifications
 
-| Property | Env var | Default | Description |
+| Property | Env var | Optional? | Description |
 |---|---|---|---|
-| `slack.webhook-url` | `SLACK_WEBHOOK_URL` | *(unset)* | Slack incoming webhook URL — notifications only sent if set |
-| `redis.url` | `REDIS_URL` | *(unset)* | Redis connection URL — deduplication only enabled if set |
+| `slack.webhook-url` | `SLACK_WEBHOOK_URL` | Optional | Slack incoming webhook URL. When set, new events are posted to Slack. |
+| `heartbeat.urls[0]`..`[N]` | `HEARTBEAT_URLS_0`..`_N` | Optional | One or more URLs to GET on each pipeline run. Compatible with Gatus, Dead Man's Snitch, or any HTTP heartbeat. |
+| `gig-hub-calendar.base-url` | `GIGHUBCALENDAR_BASEURL` | Optional | Base URL of a [gig-hub-calendar](https://github.com/dermotmburke/gig-hub-calendar) instance. When set, each Slack notification includes a save link. |
+
+### Deduplication
+
+| Property | Env var | Optional? | Description |
+|---|---|---|---|
+| `redis.url` | `REDIS_URL` | Optional | Redis connection URL. When set, each event is only notified once. Without it, every event is notified on every run. |
+
+[Upstash](https://upstash.com) offers a free tier with a `rediss://` URL:
+
+```properties
+redis.url=rediss://default:<password>@<host>:6379
+```
 
 ### Fetchers
 
-| Property | Env var | Default | Description |
+| Property | Env var | Optional? | Description |
 |---|---|---|---|
-| `fetchers.banquet.url` | `FETCHERS_BANQUET_URL` | Banquet events URL | Override the Banquet Records scrape URL |
-| `fetchers.ticketmaster.api-key` | `FETCHERS_TICKETMASTER_API_KEY` | *(unset)* | Ticketmaster Discovery API consumer key — required to enable any Ticketmaster venue |
-| `fetchers.ticketmaster.venues.<name>.id` | `FETCHERS_TICKETMASTER_VENUES_<NAME>_ID` | *(unset)* | Ticketmaster venue ID for a named venue — one entry per venue, kebab-case name |
-
-### Heartbeat monitoring
-
-gig-hub can ping one or more URLs on each successful run, compatible with [Gatus](https://github.com/TwiN/gatus), Dead Man's Snitch, or any HTTP heartbeat endpoint:
-
-| Property | Description |
-|---|---|
-| `heartbeat.urls[0]` | First heartbeat URL to ping |
-| `heartbeat.urls[1]` | Second heartbeat URL (add as many as needed) |
-
-```properties
-heartbeat.urls[0]=https://status.example.com/api/v1/endpoints/gig-hub/heartbeat
-heartbeat.urls[1]=https://nosnch.in/abc123
-```
+| `fetchers.banquet.url` | `FETCHERS_BANQUET_URL` | Optional | Override the Banquet Records scrape URL. Default: `https://www.banquetrecords.com/events?w=1000` |
+| `fetchers.ticketmaster.api-key` | `FETCHERS_TICKETMASTER_API_KEY` | Optional | Ticketmaster Discovery API key. Required to enable any Ticketmaster venue. |
+| `fetchers.ticketmaster.venues.<name>.id` | `FETCHERS_TICKETMASTER_VENUES_<NAME>_ID` | Optional | Ticketmaster venue ID. One entry per venue; name must be kebab-case. Requires `api-key` to be set. |
 
 ### OpenTelemetry
 
+Traces are exported via OTLP/HTTP. All properties are optional with sensible defaults.
+
 | Property | Env var | Default | Description |
 |---|---|---|---|
-| `otel.service.name` | `OTEL_SERVICE_NAME` | `gig-hub` | Service name reported in traces |
-| `otel.exporter.otlp.endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP collector endpoint (Jaeger, Grafana Tempo, etc.) |
+| `otel.service.name` | `OTEL_SERVICE_NAME` | `gig-hub` | Service name in traces |
+| `otel.exporter.otlp.endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP collector (Jaeger, Grafana Tempo, etc.) |
+| `otel.traces.exporter` | `OTEL_TRACES_EXPORTER` | `logging` | Set to `otlp` to export to the collector above |
 
-### Slack
+### Full example
 
-Create an [incoming webhook](https://api.slack.com/messaging/webhooks) in your Slack workspace and set `SLACK_WEBHOOK_URL`. If not set, events are logged to stdout only.
+```properties
+# Slack (optional)
+slack.webhook-url=https://hooks.slack.com/services/your/webhook/url
 
-### Redis (deduplication)
+# Redis deduplication (optional)
+redis.url=rediss://default:<password>@<host>:6379
 
-[Upstash](https://upstash.com) works well — it offers a free tier and provides a `rediss://` URL directly:
+# Heartbeat monitoring (optional — add as many as needed)
+heartbeat.urls[0]=https://status.example.com/api/v1/endpoints/gig-hub/heartbeat
+heartbeat.urls[1]=https://nosnch.in/abc123
 
+# gig-hub-calendar save links in Slack (optional)
+gig-hub-calendar.base-url=https://calendar.example.com
+
+# Ticketmaster venues (optional — add as many as needed)
+fetchers.ticketmaster.api-key=your_consumer_key
+fetchers.ticketmaster.venues.royal-albert-hall.id=KovZ9177Arf
+fetchers.ticketmaster.venues.brixton-academy.id=KovZ91777af
+fetchers.ticketmaster.venues.eventim-apollo.id=KovZpZAtadaA
+fetchers.ticketmaster.venues.royal-festival-hall.id=KovZpZAnFvlA
 ```
-REDIS_URL=rediss://default:<password>@<host>:6379
-```
-
-If `REDIS_URL` is not set the app runs without deduplication — every event is notified on every run.
 
 ## Adding a Ticketmaster venue
 
