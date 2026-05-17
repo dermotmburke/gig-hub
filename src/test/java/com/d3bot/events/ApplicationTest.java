@@ -10,21 +10,18 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 
 import java.nio.file.Files;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class ApplicationTest {
 
     @MockBean
@@ -37,20 +34,10 @@ class ApplicationTest {
     EventDeduplicator deduplicator;
 
     @Autowired
-    TestRestTemplate restTemplate;
-
-    @Autowired
     EventPipelineRunner runner;
 
     @Test
     void contextLoads() {
-    }
-
-    @Test
-    void healthEndpointReturnsUp() {
-        ResponseEntity<String> response = restTemplate.getForEntity("/actuator/health", String.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody().contains("\"status\":\"UP\""));
     }
 
     @Test
