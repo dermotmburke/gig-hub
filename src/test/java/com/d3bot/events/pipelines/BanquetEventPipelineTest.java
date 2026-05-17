@@ -1,13 +1,9 @@
-package com.d3bot.events.routes;
+package com.d3bot.events.pipelines;
 
 import com.d3bot.events.extractors.BanquetEventExtractor;
 import com.d3bot.events.fetchers.BanquetEventFetcher;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
-import org.apache.camel.CamelContext;
-import org.apache.camel.ProducerTemplate;
-import org.apache.camel.impl.DefaultCamelContext;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.io.ClassPathResource;
@@ -22,18 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-class BanquetEventRouteBuilderTest {
+class BanquetEventPipelineTest {
 
     private final BanquetEventFetcher fetcher = mock(BanquetEventFetcher.class);
     private final EventNotifier notifier = mock(EventNotifier.class);
-    private CamelContext context;
-
-    @AfterEach
-    void tearDown() throws Exception {
-        if (context != null) {
-            context.stop();
-        }
-    }
 
     @Test
     @SuppressWarnings("unchecked")
@@ -41,16 +29,9 @@ class BanquetEventRouteBuilderTest {
         String html = Files.readString(new ClassPathResource("events.html").getFile().toPath());
         when(fetcher.fetch()).thenReturn(html);
 
-        BanquetEventRouteBuilder route = new BanquetEventRouteBuilder(
+        BanquetEventPipeline pipeline = new BanquetEventPipeline(
                 fetcher, new BanquetEventExtractor(), List.of(notifier), Optional.empty());
-
-        context = new DefaultCamelContext();
-        context.addRoutes(route);
-        context.start();
-
-        try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:" + route.getRouteId(), null);
-        }
+        pipeline.run();
 
         ArgumentCaptor<List<Event>> captor = ArgumentCaptor.forClass(List.class);
         verify(notifier).notify(captor.capture());

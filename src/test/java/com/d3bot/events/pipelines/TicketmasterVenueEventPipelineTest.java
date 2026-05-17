@@ -1,13 +1,9 @@
-package com.d3bot.events.routes;
+package com.d3bot.events.pipelines;
 
 import com.d3bot.events.extractors.TicketmasterEventExtractor;
 import com.d3bot.events.fetchers.TicketmasterEventFetcher;
 import com.d3bot.events.models.Event;
 import com.d3bot.events.notifiers.EventNotifier;
-import org.apache.camel.CamelContext;
-import org.apache.camel.ProducerTemplate;
-import org.apache.camel.impl.DefaultCamelContext;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -18,25 +14,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-class TicketmasterVenueEventRouteBuilderTest {
+class TicketmasterVenueEventPipelineTest {
 
     private final TicketmasterEventFetcher fetcher = mock(TicketmasterEventFetcher.class);
     private final TicketmasterEventExtractor extractor = mock(TicketmasterEventExtractor.class);
     private final EventNotifier notifier = mock(EventNotifier.class);
-    private CamelContext context;
-
-    @AfterEach
-    void tearDown() throws Exception {
-        if (context != null) {
-            context.stop();
-        }
-    }
 
     @Test
-    void routeIdIsVenueNamePlusPipeline() {
-        TicketmasterVenueEventRouteBuilder route = new TicketmasterVenueEventRouteBuilder(
+    void pipelineIdIsVenueNamePlusPipeline() {
+        TicketmasterVenueEventPipeline pipeline = new TicketmasterVenueEventPipeline(
                 "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty());
-        assertEquals("brixton-academy-pipeline", route.getRouteId());
+        assertEquals("brixton-academy-pipeline", pipeline.getPipelineId());
     }
 
     @Test
@@ -48,16 +36,8 @@ class TicketmasterVenueEventRouteBuilderTest {
         when(fetcher.fetch()).thenReturn(json);
         when(extractor.extract(json)).thenReturn(events);
 
-        TicketmasterVenueEventRouteBuilder route = new TicketmasterVenueEventRouteBuilder(
-                "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty());
-
-        context = new DefaultCamelContext();
-        context.addRoutes(route);
-        context.start();
-
-        try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:" + route.getRouteId(), null);
-        }
+        new TicketmasterVenueEventPipeline(
+                "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty()).run();
 
         verify(notifier).notify(events);
     }
@@ -66,16 +46,8 @@ class TicketmasterVenueEventRouteBuilderTest {
     void runHandlesInterruptedExceptionFromFetch() throws Exception {
         when(fetcher.fetch()).thenThrow(new InterruptedException("interrupted"));
 
-        TicketmasterVenueEventRouteBuilder route = new TicketmasterVenueEventRouteBuilder(
-                "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty());
-
-        context = new DefaultCamelContext();
-        context.addRoutes(route);
-        context.start();
-
-        try (ProducerTemplate template = context.createProducerTemplate()) {
-            template.sendBody("direct:" + route.getRouteId(), null);
-        }
+        new TicketmasterVenueEventPipeline(
+                "brixton-academy", fetcher, extractor, List.of(notifier), Optional.empty()).run();
 
         verifyNoInteractions(notifier);
         assertTrue(Thread.currentThread().isInterrupted());

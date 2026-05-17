@@ -1,4 +1,4 @@
-package com.d3bot.events.routes;
+package com.d3bot.events.pipelines;
 
 import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.BanquetEventExtractor;
@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-public class BanquetEventRouteBuilder extends EventRouteBuilder {
+public class BanquetEventPipeline extends EventPipeline {
 
-    public BanquetEventRouteBuilder(
+    public BanquetEventPipeline(
             BanquetEventFetcher fetcher,
             BanquetEventExtractor extractor,
             List<EventNotifier> notifiers,

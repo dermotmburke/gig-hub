@@ -1,6 +1,6 @@
 package com.d3bot.events.config;
 
-import com.d3bot.events.routes.TicketmasterVenueEventRouteBuilder;
+import com.d3bot.events.pipelines.TicketmasterVenueEventPipeline;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -16,10 +16,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Registers one {@link TicketmasterVenueEventRouteBuilder} bean per entry in
+ * Registers one {@link TicketmasterVenueEventPipeline} bean per entry in
  * {@code fetchers.ticketmaster.venues}. Runs before any beans are instantiated so the
- * dynamically created route builders appear in the {@code List<EventRouteBuilder>} injected
- * by {@link com.d3bot.events.routes.EventSchedulerRoute}.
+ * dynamically created pipelines appear in the {@code List<EventPipeline>} injected
+ * by {@link com.d3bot.events.runners.EventPipelineRunner}.
  *
  * <p>If {@code fetchers.ticketmaster.api-key} is absent no beans are registered.
  */
@@ -52,14 +52,14 @@ public class TicketmasterVenueBeanRegistrar implements BeanDefinitionRegistryPos
             }
 
             GenericBeanDefinition def = new GenericBeanDefinition();
-            def.setBeanClass(TicketmasterVenueEventRouteBuilder.class);
-            def.setFactoryBeanName("ticketmasterRouteBuilderFactory");
+            def.setBeanClass(TicketmasterVenueEventPipeline.class);
+            def.setFactoryBeanName("ticketmasterPipelineFactory");
             def.setFactoryMethodName("create");
             def.getConstructorArgumentValues().addGenericArgumentValue(venueName);
             def.getConstructorArgumentValues().addGenericArgumentValue(venueId);
             def.getConstructorArgumentValues().addGenericArgumentValue(apiKey);
 
-            registry.registerBeanDefinition(venueName + "TicketmasterEventRouteBuilder", def);
+            registry.registerBeanDefinition(venueName + "TicketmasterEventPipeline", def);
         }
     }
 

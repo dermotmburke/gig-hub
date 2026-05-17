@@ -23,8 +23,8 @@ class TicketmasterVenueBeanRegistrarTest {
         registrar.setEnvironment(env);
         registrar.postProcessBeanDefinitionRegistry(registry);
 
-        verify(registry).registerBeanDefinition(eq("brixton-academyTicketmasterEventRouteBuilder"), any());
-        verify(registry).registerBeanDefinition(eq("eventim-apolloTicketmasterEventRouteBuilder"), any());
+        verify(registry).registerBeanDefinition(eq("brixton-academyTicketmasterEventPipeline"), any());
+        verify(registry).registerBeanDefinition(eq("eventim-apolloTicketmasterEventPipeline"), any());
         verifyNoMoreInteractions(registry);
     }
 
@@ -61,6 +61,6 @@ class TicketmasterVenueBeanRegistrarTest {
         registrar.postProcessBeanDefinitionRegistry(registry);
 
         verify(registry, times(1)).registerBeanDefinition(any(), any());
-        verify(registry).registerBeanDefinition(eq("brixton-academyTicketmasterEventRouteBuilder"), any());
+        verify(registry).registerBeanDefinition(eq("brixton-academyTicketmasterEventPipeline"), any());
     }
 }

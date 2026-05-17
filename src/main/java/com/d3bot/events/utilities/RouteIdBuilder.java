@@ -5,7 +5,7 @@ public class RouteIdBuilder {
     private RouteIdBuilder() {}
 
     public static String build(Class<?> clazz) {
-        String name = clazz.getSimpleName().replace("EventRouteBuilder", "");
+        String name = clazz.getSimpleName().replace("EventPipeline", "");
         return name.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase() + "-pipeline";
     }
 }

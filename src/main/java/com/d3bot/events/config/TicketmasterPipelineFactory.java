@@ -2,29 +2,29 @@ package com.d3bot.events.config;
 
 import com.d3bot.events.deduplicators.EventDeduplicator;
 import com.d3bot.events.extractors.TicketmasterEventExtractor;
-import com.d3bot.events.fetchers.TicketmasterEventFetcher;
 import com.d3bot.events.notifiers.EventNotifier;
-import com.d3bot.events.routes.TicketmasterVenueEventRouteBuilder;
+import com.d3bot.events.pipelines.TicketmasterVenueEventPipeline;
 import com.d3bot.events.utilities.UrlFetcher;
+import com.d3bot.events.fetchers.TicketmasterEventFetcher;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Factory that creates {@link TicketmasterVenueEventRouteBuilder} instances for dynamically
+ * Factory that creates {@link TicketmasterVenueEventPipeline} instances for dynamically
  * configured venues. Holds all shared dependencies so that bean definitions registered by
  * {@link TicketmasterVenueBeanRegistrar} only need to supply venue-specific arguments.
  */
 @Component
-public class TicketmasterRouteBuilderFactory {
+public class TicketmasterPipelineFactory {
 
     private final UrlFetcher urlFetcher;
     private final TicketmasterEventExtractor extractor;
     private final List<EventNotifier> notifiers;
     private final Optional<EventDeduplicator> deduplicator;
 
-    public TicketmasterRouteBuilderFactory(
+    public TicketmasterPipelineFactory(
             UrlFetcher urlFetcher,
             TicketmasterEventExtractor extractor,
             List<EventNotifier> notifiers,
@@ -35,8 +35,8 @@ public class TicketmasterRouteBuilderFactory {
         this.deduplicator = deduplicator;
     }
 
-    public TicketmasterVenueEventRouteBuilder create(String venueName, String venueId, String apiKey) {
+    public TicketmasterVenueEventPipeline create(String venueName, String venueId, String apiKey) {
         TicketmasterEventFetcher fetcher = new TicketmasterEventFetcher(urlFetcher, venueId, apiKey);
-        return new TicketmasterVenueEventRouteBuilder(venueName, fetcher, extractor, notifiers, deduplicator);
+        return new TicketmasterVenueEventPipeline(venueName, fetcher, extractor, notifiers, deduplicator);
     }
 }
