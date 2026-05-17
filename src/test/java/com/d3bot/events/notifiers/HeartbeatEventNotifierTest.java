@@ -3,6 +3,7 @@ package com.d3bot.events.notifiers;
 import com.d3bot.events.models.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -17,9 +18,10 @@ import static org.mockito.Mockito.*;
 class HeartbeatEventNotifierTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
-    private final HeartbeatEventNotifier notifier = new HeartbeatEventNotifier(
-            httpClient,
-            List.of("https://monitor-a.example.com/ping", "https://monitor-b.example.com/ping"));
+    private final MockEnvironment environment = new MockEnvironment()
+            .withProperty("heartbeat.urls[0]", "https://monitor-a.example.com/ping")
+            .withProperty("heartbeat.urls[1]", "https://monitor-b.example.com/ping");
+    private final HeartbeatEventNotifier notifier = new HeartbeatEventNotifier(httpClient, environment);
 
     @BeforeEach
     @SuppressWarnings("unchecked")

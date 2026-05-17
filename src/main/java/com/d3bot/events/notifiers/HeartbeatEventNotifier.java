@@ -3,8 +3,10 @@ package com.d3bot.events.notifiers;
 import com.d3bot.events.models.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -15,7 +17,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 
 @Component
-@ConditionalOnProperty("heartbeat.urls")
+@ConditionalOnProperty("heartbeat.urls[0]")
 public class HeartbeatEventNotifier implements EventNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(HeartbeatEventNotifier.class);
@@ -23,11 +25,11 @@ public class HeartbeatEventNotifier implements EventNotifier {
     private final HttpClient httpClient;
     private final List<String> urls;
 
-    public HeartbeatEventNotifier(
-            HttpClient httpClient,
-            @Value("${heartbeat.urls}") List<String> urls) {
+    public HeartbeatEventNotifier(HttpClient httpClient, Environment environment) {
         this.httpClient = httpClient;
-        this.urls = urls;
+        this.urls = Binder.get(environment)
+                .bind("heartbeat.urls", Bindable.listOf(String.class))
+                .orElse(List.of());
     }
 
     @Override
