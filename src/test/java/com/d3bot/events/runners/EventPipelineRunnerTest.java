@@ -11,16 +11,16 @@ import static org.mockito.Mockito.*;
 class EventPipelineRunnerTest {
 
     @Test
-    void runAllCallsEachPipeline() {
+    void runCallsEachPipeline() throws Exception {
         EventPipeline p1 = mock(EventPipeline.class);
         EventPipeline p2 = mock(EventPipeline.class);
-        new EventPipelineRunner(List.of(p1, p2), 3600000).runAll();
+        new EventPipelineRunner(List.of(p1, p2)).run();
         verify(p1).run();
         verify(p2).run();
     }
 
     @Test
-    void runAllHandlesEmptyPipelineList() {
-        assertDoesNotThrow(() -> new EventPipelineRunner(List.of(), 3600000).runAll());
+    void runHandlesEmptyPipelineList() {
+        assertDoesNotThrow(() -> new EventPipelineRunner(List.of()).run());
     }
 }
