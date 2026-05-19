@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,13 @@ class EventDeduplicatorTest {
 
     private final Event eventA = new Event("Artist A", "Venue A", LocalDateTime.of(2026, 4, 7, 19, 0), "/a");
     private final Event eventB = new Event("Artist B", "Venue B", LocalDateTime.of(2026, 4, 8, 20, 0), "/b");
+
+    @Test
+    void filterReturnsEmptyListWithoutCallingRedisWhenInputIsEmpty() {
+        assertEquals(List.of(), service.filter(List.of()));
+
+        verify(jedis, never()).mget(any(String[].class));
+    }
 
     @Test
     void filterReturnsEventWhenNotInRedis() {
@@ -54,6 +62,13 @@ class EventDeduplicatorTest {
     }
 
     @Test
+    void markSentDoesNotOpenPipelineWhenInputIsEmpty() {
+        service.markSent(List.of());
+
+        verify(jedis, never()).pipelined();
+    }
+
+    @Test
     void markSentStoresJsonWithTtlViaPipeline() {
         Pipeline pipeline = mock(Pipeline.class);
         when(jedis.pipelined()).thenReturn(pipeline);
@@ -62,5 +77,6 @@ class EventDeduplicatorTest {
 
         verify(pipeline).set(eq(eventA.key()), anyString(), any(SetParams.class));
         verify(pipeline).set(eq(eventB.key()), anyString(), any(SetParams.class));
+        verify(pipeline).close();
     }
 }

@@ -7,15 +7,24 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class HeartbeatEventNotifierTest {
 
@@ -33,10 +42,8 @@ class HeartbeatEventNotifierTest {
         return new HeartbeatEventNotifier(httpClient, env);
     }
 
-    // --- GET target ---
-
     @Test
-    void getTargetSendsGetRequest() throws Exception {
+    void getTargetSendsGetRequestToConfiguredUrl() throws Exception {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
 
@@ -44,12 +51,13 @@ class HeartbeatEventNotifierTest {
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
-        assertThat(captor.getValue().method()).isEqualTo("GET");
-        assertThat(captor.getValue().uri().toString()).isEqualTo("https://hc-ping.com/abc123");
+        HttpRequest request = captor.getValue();
+        assertEquals("GET", request.method());
+        assertEquals(URI.create("https://hc-ping.com/abc123"), request.uri());
     }
 
     @Test
-    void getTargetSendsNoAuthorizationHeader() throws Exception {
+    void getTargetSendsNoAuthorizationHeaderWhenTokenIsAbsent() throws Exception {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
 
@@ -57,7 +65,7 @@ class HeartbeatEventNotifierTest {
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
-        assertThat(captor.getValue().headers().firstValue("Authorization")).isEmpty();
+        assertTrue(captor.getValue().headers().firstValue("Authorization").isEmpty());
     }
 
     @Test
@@ -70,14 +78,13 @@ class HeartbeatEventNotifierTest {
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
-        assertThat(captor.getValue().method()).isEqualTo("GET");
-        assertThat(captor.getValue().headers().firstValue("Authorization")).hasValue("Bearer my-token");
+        HttpRequest request = captor.getValue();
+        assertEquals("GET", request.method());
+        assertEquals("Bearer my-token", request.headers().firstValue("Authorization").orElseThrow());
     }
 
-    // --- POST + Bearer target ---
-
     @Test
-    void postTargetSendsPostRequest() throws Exception {
+    void postTargetSendsPostRequestWithBearerToken() throws Exception {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true")
                 .withProperty("heartbeat.targets[0].method", "POST")
@@ -87,22 +94,10 @@ class HeartbeatEventNotifierTest {
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
-        assertThat(captor.getValue().method()).isEqualTo("POST");
-    }
-
-    @Test
-    void postTargetIncludesBearerToken() throws Exception {
-        var env = new MockEnvironment()
-                .withProperty("heartbeat.targets[0].url", "https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true")
-                .withProperty("heartbeat.targets[0].method", "POST")
-                .withProperty("heartbeat.targets[0].token", "secret-token");
-
-        notifier(env).notify(List.of());
-
-        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
-        verify(httpClient).send(captor.capture(), any());
-        assertThat(captor.getValue().headers().firstValue("Authorization"))
-                .hasValue("Bearer secret-token");
+        HttpRequest request = captor.getValue();
+        assertEquals("POST", request.method());
+        assertEquals(URI.create("https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true"), request.uri());
+        assertEquals("Bearer secret-token", request.headers().firstValue("Authorization").orElseThrow());
     }
 
     @Test
@@ -115,42 +110,24 @@ class HeartbeatEventNotifierTest {
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
-        assertThat(captor.getValue().method()).isEqualTo("POST");
-        assertThat(captor.getValue().headers().firstValue("Authorization")).isEmpty();
+        assertEquals("POST", captor.getValue().method());
+        assertTrue(captor.getValue().headers().firstValue("Authorization").isEmpty());
     }
-
-    // --- Missing method defaults to GET ---
 
     @Test
     void missingMethodDefaultsToGet() throws Exception {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
-        // no method property set
 
         notifier(env).notify(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
-        assertThat(captor.getValue().method()).isEqualTo("GET");
-    }
-
-    // --- Mixed list ---
-
-    @Test
-    void mixedListPingsAllTargets() throws Exception {
-        var env = new MockEnvironment()
-                .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123")
-                .withProperty("heartbeat.targets[1].url", "https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true")
-                .withProperty("heartbeat.targets[1].method", "POST")
-                .withProperty("heartbeat.targets[1].token", "secret-token");
-
-        notifier(env).notify(List.of());
-
-        verify(httpClient, times(2)).send(any(HttpRequest.class), any());
+        assertEquals("GET", captor.getValue().method());
     }
 
     @Test
-    void mixedListSendsCorrectMethodPerTarget() throws Exception {
+    void mixedListPingsAllTargetsWithCorrectMethodsAndHeaders() throws Exception {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123")
                 .withProperty("heartbeat.targets[1].url", "https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true")
@@ -162,12 +139,14 @@ class HeartbeatEventNotifierTest {
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient, times(2)).send(captor.capture(), any());
         List<HttpRequest> requests = captor.getAllValues();
-        assertThat(requests.get(0).method()).isEqualTo("GET");
-        assertThat(requests.get(1).method()).isEqualTo("POST");
-        assertThat(requests.get(1).headers().firstValue("Authorization")).hasValue("Bearer secret-token");
+        assertEquals(List.of(
+                URI.create("https://hc-ping.com/abc123"),
+                URI.create("https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true")),
+                requests.stream().map(HttpRequest::uri).toList());
+        assertEquals(List.of("GET", "POST"), requests.stream().map(HttpRequest::method).toList());
+        assertTrue(requests.get(0).headers().firstValue("Authorization").isEmpty());
+        assertEquals("Bearer secret-token", requests.get(1).headers().firstValue("Authorization").orElseThrow());
     }
-
-    // --- Resilience ---
 
     @Test
     void oneTargetFailingDoesNotStopOthers() throws Exception {
@@ -175,8 +154,10 @@ class HeartbeatEventNotifierTest {
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123")
                 .withProperty("heartbeat.targets[1].url", "https://monitor-b.example.com/ping");
 
+        HttpResponse<Void> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
         doThrow(new IOException("connection refused"))
-                .doReturn(mock(HttpResponse.class))
+                .doReturn(response)
                 .when(httpClient).send(any(), any());
 
         notifier(env).notify(List.of());
@@ -193,12 +174,12 @@ class HeartbeatEventNotifierTest {
 
         notifier(env).notify(List.of());
 
-        assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        assertTrue(Thread.currentThread().isInterrupted());
         Thread.interrupted(); // clear for test cleanliness
     }
 
     @Test
-    void non2xxResponseLogsWarnButDoesNotThrow() throws Exception {
+    void non2xxResponseDoesNotThrow() throws Exception {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
 
@@ -206,22 +187,8 @@ class HeartbeatEventNotifierTest {
         when(badResponse.statusCode()).thenReturn(503);
         doReturn(badResponse).when(httpClient).send(any(), any());
 
-        // should not throw
-        notifier(env).notify(List.of());
-
+        assertDoesNotThrow(() -> notifier(env).notify(List.of()));
         verify(httpClient).send(any(HttpRequest.class), any());
-    }
-
-    // --- Events payload ---
-
-    @Test
-    void notifyPingsWithNoEvents() throws Exception {
-        var env = new MockEnvironment()
-                .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
-
-        notifier(env).notify(List.of());
-
-        verify(httpClient, atLeastOnce()).send(any(HttpRequest.class), any());
     }
 
     @Test
@@ -232,6 +199,17 @@ class HeartbeatEventNotifierTest {
         notifier(env).notify(List.of(
                 new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com")));
 
-        verify(httpClient, atLeastOnce()).send(any(HttpRequest.class), any());
+        verify(httpClient).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    void ignoresBlankOrMissingTargetUrls() throws Exception {
+        var env = new MockEnvironment()
+                .withProperty("heartbeat.targets[0].url", "")
+                .withProperty("heartbeat.targets[1].method", "POST");
+
+        notifier(env).notify(List.of());
+
+        verify(httpClient, never()).send(any(HttpRequest.class), any());
     }
 }

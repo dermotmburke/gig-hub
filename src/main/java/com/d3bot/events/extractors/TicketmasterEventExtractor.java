@@ -67,11 +67,15 @@ public class TicketmasterEventExtractor implements EventExtractor {
             return null;
         }
 
-        LocalDate date = LocalDate.parse(localDate);
-        LocalTime time = extractTime(startNode);
-        String venueName = extractVenueName(eventNode);
+        try {
+            LocalDate date = LocalDate.parse(localDate);
+            LocalTime time = extractTime(startNode);
+            String venueName = extractVenueName(eventNode);
 
-        return new Event(name, venueName, LocalDateTime.of(date, time), url);
+            return new Event(name, venueName, LocalDateTime.of(date, time), url);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     protected String extractArtistName(JsonNode eventNode) {
