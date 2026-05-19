@@ -3,17 +3,25 @@ package com.d3bot.events.notifiers;
 import com.d3bot.events.models.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class HeartbeatEventNotifierTest {
 
@@ -31,17 +39,18 @@ class HeartbeatEventNotifierTest {
     }
 
     @Test
-    void notifyPingsAllConfiguredUrls() throws Exception {
+    void notifyPingsAllConfiguredUrlsWithGetRequests() throws Exception {
         notifier.notify(List.of());
 
-        verify(httpClient, times(2)).send(any(HttpRequest.class), any());
-    }
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient, times(2)).send(captor.capture(), any());
 
-    @Test
-    void notifyPingsEvenWithNoEvents() throws Exception {
-        notifier.notify(List.of());
-
-        verify(httpClient, atLeastOnce()).send(any(HttpRequest.class), any());
+        List<HttpRequest> requests = captor.getAllValues();
+        assertEquals(List.of(
+                URI.create("https://monitor-a.example.com/ping"),
+                URI.create("https://monitor-b.example.com/ping")),
+                requests.stream().map(HttpRequest::uri).toList());
+        assertEquals(List.of("GET", "GET"), requests.stream().map(HttpRequest::method).toList());
     }
 
     @Test
@@ -63,12 +72,12 @@ class HeartbeatEventNotifierTest {
     }
 
     @Test
-    void notifyHandlesInterruptedException() throws Exception {
+    void notifyHandlesInterruptedExceptionAndRestoresInterruptFlag() throws Exception {
         doThrow(new InterruptedException()).when(httpClient).send(any(), any());
 
         notifier.notify(List.of());
 
-        assert Thread.currentThread().isInterrupted();
+        assertTrue(Thread.currentThread().isInterrupted());
         Thread.interrupted(); // clear for test cleanliness
     }
 }

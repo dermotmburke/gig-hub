@@ -14,6 +14,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TicketmasterEventExtractorTest {
@@ -77,6 +78,13 @@ class TicketmasterEventExtractorTest {
     }
 
     @Test
+    void returnsEmptyListWhenEventsNodeIsNotArray() throws IOException {
+        List<Event> result = new TicketmasterEventExtractor().extract("{\"_embedded\":{\"events\":{}}}");
+
+        assertEquals(List.of(), result);
+    }
+
+    @Test
     void skipsEventWithMissingName() throws IOException {
         String json = "{\"_embedded\":{\"events\":[" +
                 "{\"url\":\"https://example.com\",\"dates\":{\"start\":{\"localDate\":\"2026-06-01\"}}," +
@@ -97,6 +105,28 @@ class TicketmasterEventExtractorTest {
     }
 
     @Test
+    void skipsEventWithMalformedDate() throws IOException {
+        String json = "{\"_embedded\":{\"events\":[" +
+                "{\"name\":\"Artist\",\"url\":\"https://example.com\"," +
+                "\"dates\":{\"start\":{\"localDate\":\"not-a-date\"}}," +
+                "\"_embedded\":{\"venues\":[{\"name\":\"Venue\"}]}}" +
+                "]}}";
+
+        assertEquals(List.of(), new TicketmasterEventExtractor().extract(json));
+    }
+
+    @Test
+    void skipsEventWithMalformedTime() throws IOException {
+        String json = "{\"_embedded\":{\"events\":[" +
+                "{\"name\":\"Artist\",\"url\":\"https://example.com\"," +
+                "\"dates\":{\"start\":{\"localDate\":\"2026-06-01\",\"localTime\":\"not-a-time\"}}," +
+                "\"_embedded\":{\"venues\":[{\"name\":\"Venue\"}]}}" +
+                "]}}";
+
+        assertEquals(List.of(), new TicketmasterEventExtractor().extract(json));
+    }
+
+    @Test
     void usesUnknownVenueWhenVenuesArrayMissing() throws IOException {
         String json = "{\"_embedded\":{\"events\":[" +
                 "{\"name\":\"Artist\",\"url\":\"https://example.com\"," +
@@ -107,5 +137,10 @@ class TicketmasterEventExtractorTest {
         List<Event> result = new TicketmasterEventExtractor().extract(json);
         assertEquals(1, result.size());
         assertEquals("Unknown Venue", result.get(0).location());
+    }
+
+    @Test
+    void extractThrowsIOExceptionForInvalidJson() {
+        assertThrows(IOException.class, () -> new TicketmasterEventExtractor().extract("not-json"));
     }
 }

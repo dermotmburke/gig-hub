@@ -59,16 +59,20 @@ public class BanquetEventExtractor implements EventExtractor {
         if (!dateMatcher.find()) {
             return null;
         }
-        int day = Integer.parseInt(dateMatcher.group(1));
-        Month month = Month.valueOf(dateMatcher.group(2).toUpperCase());
-        LocalDate date = LocalDate.of(Year.now().getValue(), month, day);
+        try {
+            int day = Integer.parseInt(dateMatcher.group(1));
+            Month month = Month.valueOf(dateMatcher.group(2).toUpperCase());
+            LocalDate date = LocalDate.of(Year.now().getValue(), month, day);
 
-        var timeMatcher = TIME_PATTERN.matcher(locationPart);
-        LocalTime time = timeMatcher.find()
-                ? LocalTime.parse(timeMatcher.group(1).toUpperCase(), TIME_FORMATTER)
-                : LocalTime.MIDNIGHT;
+            var timeMatcher = TIME_PATTERN.matcher(locationPart);
+            LocalTime time = timeMatcher.find()
+                    ? LocalTime.parse(timeMatcher.group(1).toUpperCase(), TIME_FORMATTER)
+                    : LocalTime.MIDNIGHT;
 
-        return LocalDateTime.of(date, time);
+            return LocalDateTime.of(date, time);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     private String getLocation(String locationPart) {

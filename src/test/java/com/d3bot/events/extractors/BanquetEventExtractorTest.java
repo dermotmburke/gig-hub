@@ -89,4 +89,27 @@ class BanquetEventExtractorTest {
                       "</a>";
         assertEquals(0, new BanquetEventExtractor().extract(html).size());
     }
+
+    @Test
+    void cardMissingTimeDefaultsToMidnight() {
+        String html = "<a class=\"card\" href=\"/event\">" +
+                      "<span class=\"artist\">Some Artist</span>" +
+                      "<span class=\"title\">Monday 6th April at The Venue</span>" +
+                      "</a>";
+
+        List<Event> result = new BanquetEventExtractor().extract(html);
+
+        assertEquals(1, result.size());
+        assertEquals(LocalDateTime.of(Year.now().getValue(), 4, 6, 0, 0), result.get(0).dateTime());
+    }
+
+    @Test
+    void cardWithInvalidMonthIsSkipped() {
+        String html = "<a class=\"card\" href=\"/event\">" +
+                      "<span class=\"artist\">Some Artist</span>" +
+                      "<span class=\"title\">Monday 6th NotAMonth at The Venue, 7pm</span>" +
+                      "</a>";
+
+        assertEquals(0, new BanquetEventExtractor().extract(html).size());
+    }
 }
