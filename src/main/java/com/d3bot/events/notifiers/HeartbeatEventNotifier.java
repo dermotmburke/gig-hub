@@ -44,10 +44,6 @@ public class HeartbeatEventNotifier implements EventNotifier {
      * </pre>
      */
     public record HeartbeatTarget(String url, String method, String token) {
-        public boolean isPost() {
-            return "POST".equalsIgnoreCase(method);
-        }
-
         public boolean hasToken() {
             return token != null && !token.isBlank();
         }
@@ -77,15 +73,12 @@ public class HeartbeatEventNotifier implements EventNotifier {
 
     private void ping(HeartbeatTarget target) {
         try {
-            HttpRequest request = target.isPost() ? buildPost(target) : buildGet(target);
-            HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+            HttpResponse<Void> response = httpClient.send(buildRequest(target), HttpResponse.BodyHandlers.discarding());
             int status = response.statusCode();
-            String method = target.isPost() ? "POST" : "GET";
-
             if (status >= 200 && status < 300) {
-                log.info("Heartbeat {} {} → {}", method, target.url(), status);
+                log.info("Heartbeat {} {} → {}", target.method(), target.url(), status);
             } else {
-                log.warn("Heartbeat {} {} returned non-2xx status: {}", method, target.url(), status);
+                log.warn("Heartbeat {} {} returned non-2xx status: {}", target.method(), target.url(), status);
             }
         } catch (IOException | InterruptedException e) {
             log.error("Heartbeat failed for {}: {}", target.url(), e.getMessage());
@@ -95,22 +88,11 @@ public class HeartbeatEventNotifier implements EventNotifier {
         }
     }
 
-    private HttpRequest buildGet(HeartbeatTarget target) {
+    private HttpRequest buildRequest(HeartbeatTarget target) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(target.url()))
                 .timeout(TIMEOUT)
-                .GET();
-        if (target.hasToken()) {
-            builder.header("Authorization", "Bearer " + target.token());
-        }
-        return builder.build();
-    }
-
-    private HttpRequest buildPost(HeartbeatTarget target) {
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(target.url()))
-                .timeout(TIMEOUT)
-                .POST(HttpRequest.BodyPublishers.noBody());
+                .method(target.method(), HttpRequest.BodyPublishers.noBody());
         if (target.hasToken()) {
             builder.header("Authorization", "Bearer " + target.token());
         }
