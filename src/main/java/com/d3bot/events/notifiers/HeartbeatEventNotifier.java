@@ -40,7 +40,7 @@ public class HeartbeatEventNotifier implements EventNotifier {
      * <pre>
      * heartbeat.targets[1].url=https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true
      * heartbeat.targets[1].method=POST
-     * heartbeat.targets[1].token=${GATUS_TOKEN}
+     * heartbeat.targets[1].token=${HEARTBEAT_TOKEN}
      * </pre>
      */
     public record HeartbeatTarget(String url, String method, String token) {

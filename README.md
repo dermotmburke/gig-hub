@@ -113,7 +113,7 @@ heartbeat.targets[0].url=https://nosnch.in/abc123
 # POST with Bearer token — Gatus external-endpoint push monitor
 heartbeat.targets[1].url=https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true
 heartbeat.targets[1].method=POST
-heartbeat.targets[1].token=${GATUS_TOKEN}
+heartbeat.targets[1].token=${HEARTBEAT_TOKEN}
 
 # gig-hub-calendar save links in Slack (optional)
 gig-hub-calendar.base-url=https://calendar.example.com
