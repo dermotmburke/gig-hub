@@ -96,11 +96,14 @@ public class HeartbeatEventNotifier implements EventNotifier {
     }
 
     private HttpRequest buildGet(HeartbeatTarget target) {
-        return HttpRequest.newBuilder()
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(target.url()))
                 .timeout(TIMEOUT)
-                .GET()
-                .build();
+                .GET();
+        if (target.hasToken()) {
+            builder.header("Authorization", "Bearer " + target.token());
+        }
+        return builder.build();
     }
 
     private HttpRequest buildPost(HeartbeatTarget target) {

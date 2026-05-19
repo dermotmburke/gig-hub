@@ -60,6 +60,20 @@ class HeartbeatEventNotifierTest {
         assertThat(captor.getValue().headers().firstValue("Authorization")).isEmpty();
     }
 
+    @Test
+    void getTargetWithTokenIncludesBearerHeader() throws Exception {
+        var env = new MockEnvironment()
+                .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123")
+                .withProperty("heartbeat.targets[0].token", "my-token");
+
+        notifier(env).notify(List.of());
+
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(captor.capture(), any());
+        assertThat(captor.getValue().method()).isEqualTo("GET");
+        assertThat(captor.getValue().headers().firstValue("Authorization")).hasValue("Bearer my-token");
+    }
+
     // --- POST + Bearer target ---
 
     @Test
