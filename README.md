@@ -9,7 +9,7 @@ On each run, gig-hub executes every configured event pipeline in sequence:
 1. **Fetch** — pull raw content from the venue source (HTML scrape or Ticketmaster API)
 2. **Extract** — parse raw content into a list of `Event` records
 3. **Deduplicate** — filter out events already seen in Redis (skipped if Redis is not configured)
-4. **Notify** — fan out to all active notifiers (Slack, heartbeat URLs, stdout)
+4. **Notify** — fan out to all active notifiers (Slack, heartbeat targets, stdout)
 5. **Mark sent** — record new events in Redis with a TTL
 
 ```mermaid
@@ -34,11 +34,11 @@ flowchart TD
     Notify["Notifiers"]
     Notify --> Log["LoggingEventNotifier\n(always active)"]
     Notify --> Slack["SlackEventNotifier\n(requires slack.webhook-url)"]
-    Notify --> Heartbeat["HeartbeatEventNotifier\n(requires heartbeat.urls[0])"]
+    Notify --> Heartbeat["HeartbeatEventNotifier\n(requires heartbeat.targets[0].url)"]
 
     Dedup --> |markSent| Redis[("Redis")]
     Slack --> |POST| SlackAPI["Slack webhook"]
-    Heartbeat --> |GET| HeartbeatURLs["Heartbeat URL(s)"]
+    Heartbeat --> |GET or POST| HeartbeatURLs["Heartbeat target(s)"]
 ```
 
 ## Supported venues
@@ -62,7 +62,9 @@ All configuration is via environment variables or `application.properties`. Ever
 | Property | Env var | Optional? | Description |
 |---|---|---|---|
 | `slack.webhook-url` | `SLACK_WEBHOOK_URL` | Optional | Slack incoming webhook URL. When set, new events are posted to Slack. |
-| `heartbeat.urls[0]`..`[N]` | `HEARTBEAT_URLS_0`..`_N` | Optional | One or more URLs to GET on each pipeline run. Compatible with Gatus, Dead Man's Snitch, or any HTTP heartbeat. |
+| `heartbeat.targets[0].url`..`[N].url` | `HEARTBEAT_TARGETS_0_URL`..`_N_URL` | Optional | URL to call on each pipeline run. Add as many targets as needed. |
+| `heartbeat.targets[N].method` | `HEARTBEAT_TARGETS_N_METHOD` | Optional | HTTP method for target N. `GET` (default) or `POST`. Use `POST` for Gatus external-endpoint push monitors. |
+| `heartbeat.targets[N].token` | `HEARTBEAT_TARGETS_N_TOKEN` | Optional | Bearer token for target N. When set, an `Authorization: Bearer <token>` header is included. Required for Gatus push monitors. |
 | `gig-hub-calendar.base-url` | `GIGHUBCALENDAR_BASEURL` | Optional | Base URL of a [gig-hub-calendar](https://github.com/dermotmburke/gig-hub-calendar) instance. When set, each Slack notification includes a save link. |
 
 ### Deduplication
@@ -104,9 +106,14 @@ slack.webhook-url=https://hooks.slack.com/services/your/webhook/url
 # Redis deduplication (optional)
 redis.url=rediss://default:<password>@<host>:6379
 
-# Heartbeat monitoring (optional — add as many as needed)
-heartbeat.urls[0]=https://status.example.com/api/v1/endpoints/gig-hub/heartbeat
-heartbeat.urls[1]=https://nosnch.in/abc123
+# Heartbeat monitoring (optional — add as many targets as needed)
+# Plain GET — Dead Man's Snitch, healthchecks.io, etc.
+heartbeat.targets[0].url=https://nosnch.in/abc123
+
+# POST with Bearer token — Gatus external-endpoint push monitor
+heartbeat.targets[1].url=https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true
+heartbeat.targets[1].method=POST
+heartbeat.targets[1].token=${HEARTBEAT_TOKEN}
 
 # gig-hub-calendar save links in Slack (optional)
 gig-hub-calendar.base-url=https://calendar.example.com
@@ -244,7 +251,7 @@ src/main/java/com/d3bot/events/
 │   ├── EventNotifier.java                  # Interface
 │   ├── LoggingEventNotifier.java           # Always active
 │   ├── SlackEventNotifier.java             # Active when slack.webhook-url is set
-│   └── HeartbeatEventNotifier.java         # Active when heartbeat.urls[0] is set
+│   └── HeartbeatEventNotifier.java         # Active when heartbeat.targets[0].url is set
 ├── deduplicators/
 │   └── EventDeduplicator.java              # Active when redis.url is set
 ├── utilities/
