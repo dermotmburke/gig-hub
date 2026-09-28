@@ -79,4 +79,11 @@ class EventDeduplicatorTest {
         verify(pipeline).set(eq(eventB.key()), anyString(), any(SetParams.class));
         verify(pipeline).close();
     }
+
+    @Test
+    void ttlForPastEventIsFlooredWellBeyondFetchInterval() {
+        Event pastEvent = new Event("Artist", "Venue", LocalDateTime.now().minusMonths(6), "/past");
+
+        assertEquals(EventDeduplicator.MIN_TTL_SECONDS, EventDeduplicator.ttlSecondsFor(pastEvent));
+    }
 }

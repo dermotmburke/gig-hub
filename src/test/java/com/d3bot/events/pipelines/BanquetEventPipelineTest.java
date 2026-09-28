@@ -9,8 +9,10 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.core.io.ClassPathResource;
 
 import java.nio.file.Files;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.Year;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class BanquetEventPipelineTest {
+
+    // Fixed "today" so fixture dates don't depend on when the tests run
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-04-01T12:00:00Z"), ZoneOffset.UTC);
 
     private final BanquetEventFetcher fetcher = mock(BanquetEventFetcher.class);
     private final EventNotifier notifier = mock(EventNotifier.class);
@@ -30,7 +35,7 @@ class BanquetEventPipelineTest {
         when(fetcher.fetch()).thenReturn(html);
 
         BanquetEventPipeline pipeline = new BanquetEventPipeline(
-                fetcher, new BanquetEventExtractor(), List.of(notifier), Optional.empty());
+                fetcher, new BanquetEventExtractor(CLOCK), List.of(notifier), Optional.empty());
         pipeline.run();
 
         ArgumentCaptor<List<Event>> captor = ArgumentCaptor.forClass(List.class);
@@ -39,7 +44,7 @@ class BanquetEventPipelineTest {
 
         assertEquals(47, events.size());
         assertEquals("Lightyear / Slow Gherkin", events.get(0).artist());
-        assertEquals(LocalDateTime.of(Year.now().getValue(), 4, 6, 19, 0), events.get(0).dateTime());
+        assertEquals(LocalDateTime.of(2026, 4, 6, 19, 0), events.get(0).dateTime());
         assertEquals("The Fighting Cocks", events.get(0).location());
         assertTrue(events.get(0).url().startsWith("https://"));
     }
