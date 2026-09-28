@@ -5,11 +5,11 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
-import java.time.Year;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -24,6 +24,16 @@ public class BanquetEventExtractor implements EventExtractor {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mma", Locale.ENGLISH);
 
     private static final String BASE_URL = "https://www.banquetrecords.com";
+
+    private final Clock clock;
+
+    public BanquetEventExtractor() {
+        this(Clock.systemDefaultZone());
+    }
+
+    BanquetEventExtractor(Clock clock) {
+        this.clock = clock;
+    }
 
     public List<Event> extract(String page) {
         return Jsoup.parse(page, BASE_URL).select("a.card").stream()
@@ -62,7 +72,12 @@ public class BanquetEventExtractor implements EventExtractor {
         try {
             int day = Integer.parseInt(dateMatcher.group(1));
             Month month = Month.valueOf(dateMatcher.group(2).toUpperCase());
-            LocalDate date = LocalDate.of(Year.now().getValue(), month, day);
+            // Banquet omits the year and only lists upcoming gigs, so a date already past is next year's
+            LocalDate today = LocalDate.now(clock);
+            LocalDate date = LocalDate.of(today.getYear(), month, day);
+            if (date.isBefore(today)) {
+                date = date.plusYears(1);
+            }
 
             var timeMatcher = TIME_PATTERN.matcher(locationPart);
             LocalTime time = timeMatcher.find()

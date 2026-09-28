@@ -21,6 +21,8 @@ public class EventDeduplicator {
 
     private static final Logger log = LoggerFactory.getLogger(EventDeduplicator.class);
     public static final int TTL_DAYS_AFTER_EVENT = 2; // expire event from cache 2 days after event - just in case it still appears in fetched list
+    // floor for events dated in the past (e.g. a mis-parsed year) - must outlive the fetch interval or they get re-sent every run
+    static final long MIN_TTL_SECONDS = Duration.ofDays(30).getSeconds();
 
     private final JedisPooled jedis;
     private final ObjectMapper objectMapper;
@@ -45,10 +47,10 @@ public class EventDeduplicator {
         return newEvents;
     }
 
-    private static long ttlSecondsFor(Event event) {
+    static long ttlSecondsFor(Event event) {
         LocalDateTime expiry = event.dateTime().toLocalDate().plusDays(TTL_DAYS_AFTER_EVENT).atStartOfDay();
         long seconds = Duration.between(LocalDateTime.now(), expiry).getSeconds();
-        return Math.max(seconds, 60L);
+        return Math.max(seconds, MIN_TTL_SECONDS);
     }
 
     public void markSent(List<Event> events) {
