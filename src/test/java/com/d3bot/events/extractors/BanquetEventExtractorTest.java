@@ -135,7 +135,7 @@ class BanquetEventExtractorTest {
     void dateOfTodayStaysInCurrentYear() {
         String html = "<a class=\"card\" href=\"/event\">" +
                       "<span class=\"artist\">Some Artist</span>" +
-                      "<span class=\"title\">Wednesday 1st April at The Venue, 7pm</span>" +
+                      "<span class=\"title\">Wednesday 1st April at The Venue, 7:00pm</span>" +
                       "</a>";
 
         List<Event> result = EXTRACTOR.extract(html);

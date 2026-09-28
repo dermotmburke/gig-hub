@@ -31,7 +31,7 @@ public class BanquetEventExtractor implements EventExtractor {
         this(Clock.systemDefaultZone());
     }
 
-    BanquetEventExtractor(Clock clock) {
+    public BanquetEventExtractor(Clock clock) {
         this.clock = clock;
     }
 
