@@ -1,6 +1,5 @@
 package com.d3bot.events.notifiers;
 
-import com.d3bot.events.models.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -11,7 +10,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -26,7 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class HeartbeatEventNotifierTest {
+class HeartbeatReporterTest {
 
     private final HttpClient httpClient = mock(HttpClient.class);
 
@@ -38,8 +36,8 @@ class HeartbeatEventNotifierTest {
         doReturn(mockResponse).when(httpClient).send(any(HttpRequest.class), any());
     }
 
-    private HeartbeatEventNotifier notifier(MockEnvironment env) {
-        return new HeartbeatEventNotifier(httpClient, env);
+    private HeartbeatReporter reporter(MockEnvironment env) {
+        return new HeartbeatReporter(httpClient, env);
     }
 
     @Test
@@ -47,7 +45,7 @@ class HeartbeatEventNotifierTest {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
@@ -61,7 +59,7 @@ class HeartbeatEventNotifierTest {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
@@ -74,7 +72,7 @@ class HeartbeatEventNotifierTest {
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123")
                 .withProperty("heartbeat.targets[0].token", "my-token");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
@@ -90,7 +88,7 @@ class HeartbeatEventNotifierTest {
                 .withProperty("heartbeat.targets[0].method", "POST")
                 .withProperty("heartbeat.targets[0].token", "secret-token");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
@@ -106,7 +104,7 @@ class HeartbeatEventNotifierTest {
                 .withProperty("heartbeat.targets[0].url", "https://example.com/push")
                 .withProperty("heartbeat.targets[0].method", "POST");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
@@ -119,7 +117,7 @@ class HeartbeatEventNotifierTest {
         var env = new MockEnvironment()
                 .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(captor.capture(), any());
@@ -134,7 +132,7 @@ class HeartbeatEventNotifierTest {
                 .withProperty("heartbeat.targets[1].method", "POST")
                 .withProperty("heartbeat.targets[1].token", "secret-token");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient, times(2)).send(captor.capture(), any());
@@ -160,7 +158,7 @@ class HeartbeatEventNotifierTest {
                 .doReturn(response)
                 .when(httpClient).send(any(), any());
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         verify(httpClient, times(2)).send(any(HttpRequest.class), any());
     }
@@ -172,7 +170,7 @@ class HeartbeatEventNotifierTest {
 
         doThrow(new InterruptedException()).when(httpClient).send(any(), any());
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         assertTrue(Thread.currentThread().isInterrupted());
         Thread.interrupted(); // clear for test cleanliness
@@ -187,19 +185,48 @@ class HeartbeatEventNotifierTest {
         when(badResponse.statusCode()).thenReturn(503);
         doReturn(badResponse).when(httpClient).send(any(), any());
 
-        assertDoesNotThrow(() -> notifier(env).notify(List.of()));
+        assertDoesNotThrow(() -> reporter(env).report(List.of()));
         verify(httpClient).send(any(HttpRequest.class), any());
     }
 
     @Test
-    void notifyPingsWithEvents() throws Exception {
+    void failedRunSendsSuccessFalseWithErrorToSuccessParamTargets() throws Exception {
         var env = new MockEnvironment()
-                .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123");
+                .withProperty("heartbeat.targets[0].url", "https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external?success=true")
+                .withProperty("heartbeat.targets[0].method", "POST")
+                .withProperty("heartbeat.targets[0].token", "secret-token");
 
-        notifier(env).notify(List.of(
-                new Event("The Cure", "O2 Arena", LocalDateTime.of(2026, 5, 10, 19, 0), "https://example.com")));
+        reporter(env).report(List.of("banquet-pipeline", "brixton-academy-pipeline"));
 
-        verify(httpClient).send(any(HttpRequest.class), any());
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(captor.capture(), any());
+        HttpRequest request = captor.getValue();
+        assertEquals("POST", request.method());
+        assertEquals(URI.create("https://gatus.example.com/api/v1/endpoints/jobs_gig-hub/external"
+                        + "?success=false&error=Pipelines+failed%3A+banquet-pipeline%2C+brixton-academy-pipeline"),
+                request.uri());
+        assertEquals("Bearer secret-token", request.headers().firstValue("Authorization").orElseThrow());
+    }
+
+    @Test
+    void failedRunSkipsTargetsWithoutSuccessParam() throws Exception {
+        var env = new MockEnvironment()
+                .withProperty("heartbeat.targets[0].url", "https://hc-ping.com/abc123")
+                .withProperty("heartbeat.targets[1].url", "https://example.com/push?token=x&success=true")
+                .withProperty("heartbeat.targets[1].method", "POST");
+
+        reporter(env).report(List.of("banquet-pipeline"));
+
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient, times(1)).send(captor.capture(), any());
+        assertEquals(URI.create("https://example.com/push?token=x&success=false&error=Pipelines+failed%3A+banquet-pipeline"),
+                captor.getValue().uri());
+    }
+
+    @Test
+    void failureUrlIsEmptyWhenNoSuccessParam() {
+        assertTrue(HeartbeatReporter.failureUrl("https://hc-ping.com/abc123", "boom").isEmpty());
+        assertTrue(HeartbeatReporter.failureUrl("https://x.com/?notsuccess=true", "boom").isEmpty());
     }
 
     @Test
@@ -208,7 +235,7 @@ class HeartbeatEventNotifierTest {
                 .withProperty("heartbeat.targets[0].url", "")
                 .withProperty("heartbeat.targets[1].method", "POST");
 
-        notifier(env).notify(List.of());
+        reporter(env).report(List.of());
 
         verify(httpClient, never()).send(any(HttpRequest.class), any());
     }

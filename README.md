@@ -9,8 +9,10 @@ On each run, gig-hub executes every configured event pipeline in sequence:
 1. **Fetch** — pull raw content from the venue source (HTML scrape or Ticketmaster API)
 2. **Extract** — parse raw content into a list of `Event` records
 3. **Deduplicate** — filter out events already seen in Redis (skipped if Redis is not configured)
-4. **Notify** — fan out to all active notifiers (Slack, heartbeat targets, stdout)
+4. **Notify** — fan out to all active notifiers (Slack, stdout)
 5. **Mark sent** — record new events in Redis with a TTL
+
+After every pipeline has run, `EventPipelineRunner` reports the run's outcome **once** to the heartbeat targets. If any pipeline failed, the run is reported as failed (see [Heartbeat monitoring](#heartbeat-monitoring)).
 
 ```mermaid
 flowchart TD
@@ -19,7 +21,7 @@ flowchart TD
     Runner --> BR["BanquetEventPipeline"]
     Runner --> TM["TicketmasterVenueEventPipeline ×N"]
 
-    BR --> BF["BanquetEventFetcher\n(HTTP / HTML)"]
+    BR --> BF["BanquetEventFetcher\n(HTML via FlareSolverr, or plain HTTP)"]
     TM --> RF["TicketmasterEventFetcher\n(Ticketmaster API)"]
 
     BF --> |raw HTML| BE["BanquetEventExtractor"]
@@ -34,10 +36,10 @@ flowchart TD
     Notify["Notifiers"]
     Notify --> Log["LoggingEventNotifier\n(always active)"]
     Notify --> Slack["SlackEventNotifier\n(requires slack.webhook-url)"]
-    Notify --> Heartbeat["HeartbeatEventNotifier\n(requires heartbeat.targets[0].url)"]
 
     Dedup --> |markSent| Redis[("Redis")]
     Slack --> |POST| SlackAPI["Slack webhook"]
+    Runner --> |once per run: success / failed pipelines| Heartbeat["HeartbeatReporter\n(requires heartbeat.targets[0].url)"]
     Heartbeat --> |GET or POST| HeartbeatURLs["Heartbeat target(s)"]
 ```
 
@@ -45,7 +47,7 @@ flowchart TD
 
 | Venue | Source | Enabled |
 |---|---|---|
-| [Banquet Records](https://www.banquetrecords.com) | HTML scrape | Always |
+| [Banquet Records](https://www.banquetrecords.com) | HTML scrape (via FlareSolverr when `fetchers.flaresolverr.url` is set) | Always |
 | Royal Albert Hall | Ticketmaster API | When `fetchers.ticketmaster.api-key` and `fetchers.ticketmaster.venues.royal-albert-hall.id` are set |
 | Brixton Academy | Ticketmaster API | When `fetchers.ticketmaster.api-key` and `fetchers.ticketmaster.venues.brixton-academy.id` are set |
 | Eventim Apollo | Ticketmaster API | When `fetchers.ticketmaster.api-key` and `fetchers.ticketmaster.venues.eventim-apollo.id` are set |
@@ -62,10 +64,24 @@ All configuration is via environment variables or `application.properties`. Ever
 | Property | Env var | Optional? | Description |
 |---|---|---|---|
 | `slack.webhook-url` | `SLACK_WEBHOOK_URL` | Optional | Slack incoming webhook URL. When set, new events are posted to Slack. |
-| `heartbeat.targets[0].url`..`[N].url` | `HEARTBEAT_TARGETS_0_URL`..`_N_URL` | Optional | URL to call on each pipeline run. Add as many targets as needed. |
+| `heartbeat.targets[0].url`..`[N].url` | `HEARTBEAT_TARGETS_0_URL`..`_N_URL` | Optional | URL to call once per run. Add as many targets as needed. See [Heartbeat monitoring](#heartbeat-monitoring) for how failures are reported. |
 | `heartbeat.targets[N].method` | `HEARTBEAT_TARGETS_N_METHOD` | Optional | HTTP method for target N. `GET` (default) or `POST`. Use `POST` for Gatus external-endpoint push monitors. |
 | `heartbeat.targets[N].token` | `HEARTBEAT_TARGETS_N_TOKEN` | Optional | Bearer token for target N. When set, an `Authorization: Bearer <token>` header is included. Required for Gatus push monitors. |
 | `gig-hub-calendar.base-url` | `GIGHUBCALENDAR_BASEURL` | Optional | Base URL of a [gig-hub-calendar](https://github.com/dermotmburke/gig-hub-calendar) instance. When set, each Slack notification includes a save link. |
+
+### Heartbeat monitoring
+
+The heartbeat is sent once per run, after all pipelines have finished:
+
+- **All pipelines succeeded** — every target is called with its configured URL.
+- **Any pipeline failed** — targets whose URL has a `success=` query parameter (Gatus external endpoints) are called with `success=false&error=Pipelines failed: <ids>`. Targets without one (healthchecks.io, Dead Man's Snitch) are **not** called, so the missed check-in raises the alert.
+
+### Fetching
+
+| Property | Env var | Optional? | Description |
+|---|---|---|---|
+| `fetchers.banquet.url` | `FETCHERS_BANQUET_URL` | Optional | Banquet events page. Defaults to `https://www.banquetrecords.com/events?w=1000`. |
+| `fetchers.flaresolverr.url` | `FETCHERS_FLARESOLVERR_URL` | Optional | [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) endpoint, e.g. `http://flaresolverr:8191/v1`. Banquet sits behind a Cloudflare browser check that rejects plain HTTP clients with a 403; when this is set, the Banquet page is loaded through FlareSolverr's headless browser instead. |
 
 ### Deduplication
 
