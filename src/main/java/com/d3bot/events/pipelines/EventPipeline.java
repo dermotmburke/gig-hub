@@ -56,7 +56,8 @@ public abstract class EventPipeline {
         return pipelineId;
     }
 
-    public final void run() {
+    /** @return true if the pipeline completed, false if any step failed */
+    public final boolean run() {
         try {
             String raw = fetcher.fetch();
             List<Event> events = extractor.extract(raw);
@@ -69,6 +70,7 @@ public abstract class EventPipeline {
 
             notifiers.forEach(n -> n.notify(newEvents));
             deduplicator.ifPresent(d -> d.markSent(newEvents));
+            return true;
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -76,5 +78,6 @@ public abstract class EventPipeline {
         } catch (Exception e) {
             log.error("Pipeline failed for {}: {}", pipelineId, e.getMessage());
         }
+        return false;
     }
 }

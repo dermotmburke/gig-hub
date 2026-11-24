@@ -86,6 +86,17 @@ class EventPipelineTest {
     }
 
     @Test
+    void runReturnsTrueOnSuccess() {
+        assertTrue(new TestEventPipeline(() -> "raw", raw -> List.of(EVENT_A), List.of(notifier), Optional.empty()).run());
+    }
+
+    @Test
+    void runReturnsFalseOnFailure() {
+        EventFetcher failingFetcher = () -> { throw new IOException("403"); };
+        assertFalse(new TestEventPipeline(failingFetcher, raw -> List.of(), List.of(notifier), Optional.empty()).run());
+    }
+
+    @Test
     void pipelineIdIsDerivedFromClassName() {
         assertEquals("test-pipeline",
                 new TestEventPipeline(() -> "", raw -> List.of(), List.of(), Optional.empty()).getPipelineId());
