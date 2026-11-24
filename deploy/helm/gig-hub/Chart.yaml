@@ -1,0 +1,8 @@
+apiVersion: v2
+name: gig-hub
+description: gig-hub event scraper (CronJob) with an optional FlareSolverr sidecar service
+type: application
+# Overwritten at release time: `helm package --version X.Y.0 --app-version X.Y`.
+# appVersion is the image tag, so tracking the newest chart rolls out the matching image.
+version: 0.0.0
+appVersion: "latest"

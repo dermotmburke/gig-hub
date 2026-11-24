@@ -1,0 +1,51 @@
+{{- if .Values.flaresolverr.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gig-hub.flaresolverr.name" . }}
+  labels:
+    {{- include "gig-hub.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "gig-hub.flaresolverr.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gig-hub.flaresolverr.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: flaresolverr
+          image: "{{ .Values.flaresolverr.image.repository }}:{{ .Values.flaresolverr.image.tag }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.flaresolverr.port }}
+          env:
+            - name: LOG_LEVEL
+              value: {{ .Values.flaresolverr.logLevel | quote }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          {{- with .Values.flaresolverr.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "gig-hub.flaresolverr.name" . }}
+  labels:
+    {{- include "gig-hub.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "gig-hub.flaresolverr.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.flaresolverr.port }}
+      targetPort: http
+{{- end }}

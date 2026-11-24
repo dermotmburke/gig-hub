@@ -1,0 +1,41 @@
+image:
+  repository: ghcr.io/dermotmburke/gig-hub
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+#  - name: ghcr-pull-secret
+
+schedule: "*/15 * * * *"
+concurrencyPolicy: Forbid
+successfulJobsHistoryLimit: 3
+failedJobsHistoryLimit: 1
+activeDeadlineSeconds: 600
+restartPolicy: OnFailure
+
+resources: {}
+
+# Environment for the job, rendered into the <release>-env Secret (envFrom).
+# Holds credentials (Redis, Slack, Ticketmaster, heartbeat token), so supply it
+# from a Secret-backed values source rather than committing it.
+env: {}
+#  REDIS_URL: rediss://...
+#  SLACK_WEBHOOKURL: https://hooks.slack.com/...
+
+# FlareSolverr loads pages in a headless browser. Banquet Records sits behind a
+# Cloudflare browser check that rejects plain HTTP clients, so when enabled the
+# job gets FETCHERS_FLARESOLVERR_URL pointing at this Service.
+flaresolverr:
+  enabled: true
+  image:
+    repository: ghcr.io/flaresolverr/flaresolverr
+    tag: v3.5.2
+  port: 8191
+  logLevel: info
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
