@@ -188,37 +188,21 @@ docker run \
   ghcr.io/dermotmburke/gig-hub:latest
 ```
 
-## Running as a Kubernetes Job
+## Running on Kubernetes (Helm chart)
 
-gig-hub runs all pipelines once and exits with code 0 on success, making it suited for a `CronJob`:
+gig-hub runs all pipelines once and exits, so it is deployed as a `CronJob`. The chart in [`deploy/helm/gig-hub`](deploy/helm/gig-hub) contains:
 
-```yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: gig-hub
-spec:
-  schedule: "0 * * * *"   # hourly
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: gig-hub
-              image: ghcr.io/dermotmburke/gig-hub:latest
-              env:
-                - name: SLACK_WEBHOOK_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: gig-hub
-                      key: slack-webhook-url
-                - name: REDIS_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: gig-hub
-                      key: redis-url
-          restartPolicy: OnFailure
+- **CronJob** `<release>` — runs the image every 15 minutes (`schedule`), `concurrencyPolicy: Forbid`
+- **Secret** `<release>-env` — everything under `env:` in values, loaded with `envFrom`
+- **FlareSolverr** Deployment + Service `<release>-flaresolverr` (`flaresolverr.enabled`, default `true`). The chart sets `FETCHERS_FLARESOLVERR_URL` to point at it.
+
+```bash
+helm upgrade --install gig-hub oci://ghcr.io/dermotmburke/helm/gig-hub -n gig-hub --create-namespace \
+  --set 'imagePullSecrets[0].name=ghcr-pull-secret' \
+  --set env.REDIS_URL=rediss://... --set env.SLACK_WEBHOOKURL=https://hooks.slack.com/...
 ```
+
+The chart's `appVersion` is the image tag, so installing chart `X.Y.0` runs image `X.Y`. The homelab cluster tracks the newest chart with Flux (an `OCIRepository` + `HelmRelease`), so every release here rolls out automatically.
 
 ## Tests
 
@@ -237,10 +221,13 @@ open target/site/jacoco/index.html
 
 | Workflow | Trigger | Action |
 |---|---|---|
-| CI | Pull request to `main` | Runs tests |
-| Docker Build and Publish | Push to `main` | Runs tests → builds and pushes Docker image to GHCR → creates GitHub release → bumps minor version |
+| CI | Pull request to `main` | Runs tests, lints the Helm chart |
+| Docker Build and Publish | Push to `main` | Runs tests → builds and pushes Docker image to GHCR → packages and pushes the Helm chart → creates GitHub release → bumps minor version |
 
-The Docker image is published to `ghcr.io/dermotmburke/gig-hub` tagged with `latest` and the version from `pom.xml`.
+For pom version `X.Y-SNAPSHOT`, a release publishes:
+
+- image `ghcr.io/dermotmburke/gig-hub:X.Y` (and `latest`)
+- chart `oci://ghcr.io/dermotmburke/helm/gig-hub:X.Y.0` (and `latest`), with `appVersion: X.Y`
 
 ## Project structure
 

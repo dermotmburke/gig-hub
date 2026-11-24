@@ -23,3 +23,11 @@ jobs:
 
       - name: Run tests
         run: mvn test --no-transfer-progress
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Lint Helm chart
+        run: |
+          helm lint deploy/helm/gig-hub
+          helm template gig-hub deploy/helm/gig-hub --set env.EXAMPLE=x > /dev/null

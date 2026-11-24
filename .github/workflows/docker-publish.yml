@@ -71,6 +71,23 @@ jobs:
             -Djib.to.auth.username=${{ github.actor }} \
             -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      # Chart version is X.Y.0 (Helm needs SemVer); appVersion is X.Y, the image
+      # tag. Flux in homelab tracks the newest chart, which rolls out this image.
+      - name: Package and push Helm chart to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          helm package deploy/helm/gig-hub --version ${{ steps.version.outputs.version }}.0 --app-version ${{ steps.version.outputs.version }}
+          helm push gig-hub-${{ steps.version.outputs.version }}.0.tgz oci://${{ env.REGISTRY }}/dermotmburke/helm
+
+      - name: Install crane
+        uses: imjasonh/setup-crane@v0.4
+
+      - name: Tag Helm chart as latest
+        run: crane copy ${{ env.REGISTRY }}/dermotmburke/helm/gig-hub:${{ steps.version.outputs.version }}.0 ${{ env.REGISTRY }}/dermotmburke/helm/gig-hub:latest
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
